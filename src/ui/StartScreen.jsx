@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HEROES, HDEF, WDEF, fmt } from '../game/data.js';
 import { getHeroSprites, heroPortrait, drawHeroArm, HERO_LOOK } from '../game/sprites/heroes.js';
 import { GLOW } from '../game/sprites/world.js';
 import { setGlowScale } from '../game/gfx.js';
 import { game } from '../game/engine.js';
 import Icon from './Icon.jsx';
+import AuthModal from './AuthModal.jsx';
+import ProfileModal from './ProfileModal.jsx';
+import LeaderboardModal from './LeaderboardModal.jsx';
 
 // Картинки героев для кнопок выбора рисуются один раз
 let portraits = null;
@@ -48,13 +51,17 @@ function HeroPreview({ id }) {
   return <div className="hero-stage"><canvas ref={ref} aria-hidden="true" /></div>;
 }
 
-export default function StartScreen({ heroId, best }) {
+export default function StartScreen({ heroId, best, account }) {
   const P = getPortraits();
+  const [modal, setModal] = useState(null); // auth | profile | leaders
+  const acc = account || { status: 'checking' };
   const h = HDEF[heroId] || HEROES[0], Wd = WDEF[h.weapon];
 
   // Enter / пробел — начать игру, стрелки — выбрать героя
   useEffect(() => {
     const onKey = (e) => {
+      if (modal) return;
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       if (e.target && e.target.tagName === 'BUTTON' && (e.code === 'Enter' || e.code === 'Space')) return;
       const i = HEROES.findIndex((q) => q.id === heroId);
       if (e.code === 'Enter') { e.preventDefault(); game.start(); }
@@ -63,10 +70,19 @@ export default function StartScreen({ heroId, best }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [heroId]);
+  }, [heroId, modal]);
 
   return (
     <div id="start" className="overlay">
+      <div className="account-bar">
+        {acc.status === 'user' && (
+          <button type="button" className="chip" onClick={() => setModal('profile')}><Icon name="user" />{acc.user.nick}</button>
+        )}
+        {acc.status === 'guest' && (
+          <button type="button" className="chip" onClick={() => setModal('auth')}><Icon name="user" />Войти</button>
+        )}
+        {acc.status === 'offline' && <span className="chip off" title="Сервер с аккаунтами недоступен — можно играть гостем">Оффлайн</span>}
+      </div>
       <div className="panel">
         <h1>Бесконечная орда</h1>
         <HeroPreview id={h.id} />
@@ -81,10 +97,17 @@ export default function StartScreen({ heroId, best }) {
           <span className="wpn"><Icon name={Wd.icon} />{Wd.name}</span>
           <p>{h.perk}</p>
         </div>
-        <button id="startBtn" className="btn" type="button" onClick={game.start}>Играть</button>
-        <p className="best">{best ? 'Рекорд: ' + fmt(best) : ''}</p>
-        <p className="keys-tip"><kbd>←</kbd><kbd>→</kbd> выбор героя · <kbd>Enter</kbd> играть</p>
+        <div className="menu-actions">
+          <button id="startBtn" className="btn" type="button" onClick={game.start}>Играть</button>
+          {acc.status !== 'offline' && acc.status !== 'checking' && (
+            <button className="btn ghost" type="button" onClick={() => setModal('leaders')}><Icon name="trophy" />Лидеры</button>
+          )}
+        </div>
+        {!!best && <p className="best">Рекорд: {fmt(best)}</p>}
       </div>
+      {modal === 'auth' && <AuthModal onClose={() => setModal(null)} />}
+      {modal === 'profile' && acc.status === 'user' && <ProfileModal account={acc} onClose={() => setModal(null)} />}
+      {modal === 'leaders' && <LeaderboardModal account={acc} onClose={() => setModal(null)} />}
     </div>
   );
 }

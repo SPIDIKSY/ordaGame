@@ -19,7 +19,6 @@ export default function LevelUpScreen({ choices, rerolls }) {
     <div id="levelup" className="overlay">
       <div className="panel wide">
         <h2>Новый уровень</h2>
-        <p className="lead">Выбери одно улучшение</p>
         <div id="cards">
           {choices.map((c, i) => (
             <button key={c.key} type="button" className={'card ' + c.cls} style={{ '--cc': c.cc }} onClick={() => game.pickChoice(i)}>
@@ -37,7 +36,6 @@ export default function LevelUpScreen({ choices, rerolls }) {
             <Icon name="reroll" />Перебросить · {rerolls}
           </button>
         </div>
-        <p className="keys-tip"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> выбрать · <kbd>R</kbd> перебросить</p>
       </div>
     </div>
   );

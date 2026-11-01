@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { mountGame } from './game/engine.js';
+import { initAccount } from './net/account.js';
 import { ui, useStore } from './game/store.js';
 import Hud from './ui/Hud.jsx';
 import Toast from './ui/Toast.jsx';
@@ -18,6 +19,7 @@ export default function App() {
 
   // Запускаем игру один раз, когда canvas появился на странице
   useEffect(() => mountGame(canvasRef.current, appRef.current), []);
+  useEffect(() => { initAccount(); }, []);
 
   return (
     <div id="app" ref={appRef}>
@@ -29,7 +31,7 @@ export default function App() {
         {touch ? 'Тяни кружок внизу, чтобы бежать' : 'Беги на WASD или стрелках · пауза — Esc'}
       </div>
 
-      {s.screen === 'menu' && <StartScreen heroId={s.heroId} best={s.best} />}
+      {s.screen === 'menu' && <StartScreen heroId={s.heroId} best={s.best} account={s.account} />}
       {s.screen === 'levelup' && <LevelUpScreen choices={s.choices} rerolls={s.rerolls} />}
       {s.screen === 'chest' && s.chest && <ChestScreen chest={s.chest} />}
       {s.screen === 'pause' && s.pause && <PauseScreen sections={s.pause} />}

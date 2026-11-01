@@ -14,6 +14,8 @@ import { PUS, PU_W, BUFF_TIME } from './sprites/world.js';
 import { HERO_LOOK, getHeroSprites } from './sprites/heroes.js';
 import { render, resizeRender } from './render.js';
 import { ui, hud } from './store.js';
+import { api } from '../net/api.js';
+import { isLoggedIn, refreshMe } from '../net/account.js';
 
 /* =====================================================
    РАЗМЕРЫ ЭКРАНА, ДЖОЙСТИК, КЛАВИАТУРА
@@ -104,7 +106,8 @@ function newGame() {
     enemies: [], shots: [], gems: [], chests: [], parts: [], texts: [], rings: [], bolts: [], meteors: [], puddles: [], flasks: [],
     spawnAcc: 0, nextId: 1, waveT: 25, bossT: 150, eliteT: 45, unlocked: 1,
     pickups: [], buffs: { rage: 0, haste: 0 }, flash: 0, shake: 0, corpses: [], fx: [],
-    lvlFx: 0, lvlArm: false, hurtFx: 0, dustT: 0, bladeN: 0, bladeR: 64
+    lvlFx: 0, lvlArm: false, hurtFx: 0, dustT: 0, bladeN: 0, bladeR: 64, bossKills: 0,
+    run: { id: null, chain: Promise.resolve(), nextBeat: 15, rejected: null }
   };
   applyEff(G.p, h.eff);
   heroSpr = getHeroSprites(h.id);
@@ -239,6 +242,7 @@ function hurtPlayer(d, src) {
 function killEnemy(e) {
   const g = G, p = g.p;
   e.dead = true; g.kills++;
+  if (e.T.boss) g.bossKills++;
   if (g.corpses.length < 70) g.corpses.push({ x: e.x, y: e.y, img: SPR[e.T.key].w[0], flip: p.x < e.x ? -1 : 1, sc: e.scale, t: 0, life: e.T.boss ? 0.6 : 0.32, fly: !!e.T.fly });
   burst(e.x, e.y, e.T.pc, e.T.boss ? 34 : e.elite ? 18 : 7, e.T.boss ? 270 : 140);
   if (e.T.boss) {
@@ -714,6 +718,7 @@ function separate(dt) {
    ===================================================== */
 function update(dt) {
   const g = G, p = g.p, t = (g.t += dt);
+  if (t >= g.run.nextBeat) { g.run.nextBeat += 15; sendBeat(g); }
 
   let ix = 0, iy = 0;
   if (keys.size) {
@@ -1112,17 +1117,47 @@ function reroll() {
 function readBest() { try { return Number(localStorage.getItem('orda-best')) || 0; } catch (_) { return 0; } }
 function writeBest(v) { try { localStorage.setItem('orda-best', String(v)); } catch (_) {} }
 
+/* --- забег на сервере: старт, отчёты каждые 15 сек, финиш --- */
+const runReport = (g) => ({ time: Math.floor(g.t * 10) / 10, kills: g.kills, level: g.level, bosses: g.bossKills });
+function startOnlineRun(g) {
+  if (!isLoggedIn()) return;
+  g.run.chain = api.startRun(g.hero).then((r) => { g.run.id = r.runId; }).catch((e) => { g.run.rejected = e.message; });
+}
+function sendBeat(g) {
+  if (!isLoggedIn()) return;
+  const rep = runReport(g);
+  // отчёты уходят строго по очереди, чтобы сервер видел их в правильном порядке
+  g.run.chain = g.run.chain.then(() => (g.run.id && !g.run.rejected ? api.beat(g.run.id, rep) : null))
+    .catch((e) => { if (e.status === 422 || e.status === 404) g.run.rejected = e.message; });
+}
+function finishOnlineRun(g) {
+  const acc = ui.get().account || {};
+  if (acc.status !== 'user') return { status: acc.status === 'offline' ? 'offline' : 'guest' };
+  const rep = runReport(g);
+  const upd = (online) => { const d = ui.get().dead; if (d && d.g === g) ui.set({ dead: { ...d, online } }); };
+  g.run.chain.then(() => {
+    if (g.run.rejected) throw new Error(g.run.rejected);
+    if (!g.run.id) throw new Error('Забег не начался на сервере');
+    return api.finish(g.run.id, rep);
+  }).then((r) => { upd({ status: 'ok', place: r.place, heroPlace: r.heroPlace, score: r.score }); refreshMe(); })
+    .catch((e) => upd({ status: 'error', msg: e.message }));
+  return { status: 'sending' };
+}
+
 function die() {
   stickReset(); hideHint();
   const t = Math.floor(G.t), best = readBest();
   let bestText;
   if (t > best) { writeBest(t); bestText = 'Новый рекорд!'; }
   else bestText = best ? 'Рекорд: ' + fmt(best) : '';
-  ui.set({ dead: { time: fmt(t), kills: G.kills, level: G.level, bestText, inv: invSnapshot() }, best: readBest() });
+  const g = G;
+  ui.set({ dead: { g, time: fmt(t), kills: G.kills, level: G.level, bestText, inv: invSnapshot(), online: null }, best: readBest() });
+  ui.set({ dead: { ...ui.get().dead, online: finishOnlineRun(g) } });
   setState('dead');
 }
 function startGame() {
   newGame(); stickReset();
+  startOnlineRun(G);
   curReward = null;
   ui.set({ chest: null, dead: null, pause: null, toast: null });
   lastHudKey = '';

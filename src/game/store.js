@@ -33,7 +33,8 @@ export const ui = createStore({
   rerolls: 0,
   chest: null,         // награда из сундука
   pause: null,         // снаряжение для экрана паузы
-  dead: null           // итоги забега
+  dead: null,          // итоги забега
+  account: { status: 'checking', user: null }
 });
 
 // HUD — обновляется часто, поэтому отдельно
