@@ -6,6 +6,7 @@ import { setGlowScale } from '../game/gfx.js';
 import { game } from '../game/engine.js';
 import Icon from './Icon.jsx';
 import AuthModal from './AuthModal.jsx';
+import { initAccount } from '../net/account.js';
 import ProfileModal from './ProfileModal.jsx';
 import LeaderboardModal from './LeaderboardModal.jsx';
 
@@ -81,7 +82,9 @@ export default function StartScreen({ heroId, best, account }) {
         {acc.status === 'guest' && (
           <button type="button" className="chip" onClick={() => setModal('auth')}><Icon name="user" />Войти</button>
         )}
-        {acc.status === 'offline' && <span className="chip off" title="Сервер с аккаунтами недоступен — можно играть гостем">Оффлайн</span>}
+        {acc.status === 'offline' && (
+          <button type="button" className="chip off" title="Сервер недоступен — нажми, чтобы проверить ещё раз" onClick={() => initAccount()}>Оффлайн · повторить</button>
+        )}
       </div>
       <div className="panel">
         <h1>Бесконечная орда</h1>

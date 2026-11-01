@@ -313,7 +313,7 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 }
 .chip .ico { width: 18px; height: 18px; flex: none; color: var(--amber); }
 .chip:hover { border-color: var(--amber); }
-.chip.off { cursor: default; color: var(--ink-dim); padding: 0 14px; }
+.chip.off { color: var(--ink-dim); padding: 0 14px; }
 .menu-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
 .menu-actions .btn.ghost { margin-top: 4px; min-height: 54px; }
 
