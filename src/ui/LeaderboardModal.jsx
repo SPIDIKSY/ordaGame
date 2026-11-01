@@ -32,15 +32,16 @@ export default function LeaderboardModal({ account, onClose }) {
         {!data.loading && !data.err && !data.rows.length && <p className="muted">Пока никого. Стань первым!</p>}
         {!!data.rows.length && (
           <table>
-            <thead><tr><th>#</th><th>Игрок</th><th>Время</th><th>Убито</th><th className="hide-sm">Очки</th></tr></thead>
+            <colgroup><col className="c-pl" /><col /><col className="c-n" /><col className="c-n" /><col className="c-sc" /></colgroup>
+            <thead><tr><th>#</th><th>Игрок</th><th>Время</th><th>Убито</th><th>Очки</th></tr></thead>
             <tbody>
               {data.rows.map((r) => (
                 <tr key={r.userId} className={r.userId === me ? 'me' : ''}>
                   <td className={'pl p' + Math.min(r.place, 4)}>{r.place}</td>
-                  <td className="who"><img src={heroFace(r.hero)} alt={HDEF[r.hero] ? HDEF[r.hero].name : ''} title={HDEF[r.hero] ? HDEF[r.hero].name : ''} /><span>{r.nick}</span></td>
+                  <td className="who"><div><img src={heroFace(r.hero)} alt={HDEF[r.hero] ? HDEF[r.hero].name : ''} title={HDEF[r.hero] ? HDEF[r.hero].name : ''} /><span>{r.nick}</span></div></td>
                   <td className="num">{fmt(r.time)}</td>
                   <td className="num">{r.kills}</td>
-                  <td className="num hide-sm">{r.score}</td>
+                  <td className="num score">{r.score}</td>
                 </tr>
               ))}
             </tbody>
