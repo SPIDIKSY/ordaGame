@@ -16,12 +16,12 @@ export class ApiError extends Error {
   constructor(msg, status) { super(msg); this.status = status; }
 }
 
-async function req(method, path, body) {
+async function req(method, path, body, runToken) {
   let res;
   try {
     res = await fetch(BASE + path, {
       method,
-      headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) },
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}), ...(runToken ? { 'x-run-token': runToken } : {}) },
       body: body ? JSON.stringify(body) : undefined
     });
   } catch (_) {
@@ -42,7 +42,9 @@ export const api = {
   me: () => req('GET', 'me'),
   checkNick: (nick) => req('GET', 'check-nick?nick=' + encodeURIComponent(nick)),
   startRun: (hero) => req('POST', 'runs', { hero }),
-  beat: (id, r) => req('POST', 'runs/' + encodeURIComponent(id) + '/beat', r),
-  finish: (id, r) => req('POST', 'runs/' + encodeURIComponent(id) + '/finish', r),
+  // runToken — секрет забега гостя (у вошедших он не нужен)
+  beat: (id, r, runToken) => req('POST', 'runs/' + encodeURIComponent(id) + '/beat', r, runToken),
+  finish: (id, r, runToken) => req('POST', 'runs/' + encodeURIComponent(id) + '/finish', r, runToken),
+  claim: (id, runToken) => req('POST', 'runs/' + encodeURIComponent(id) + '/claim', null, runToken),
   leaderboard: (hero) => req('GET', 'leaderboard?limit=100' + (hero ? '&hero=' + hero : ''))
 };

@@ -4,8 +4,8 @@ import Modal from './Modal.jsx';
 import { login, register } from '../net/account.js';
 
 // Вход и регистрация по логину и паролю
-export default function AuthModal({ onClose }) {
-  const [mode, setMode] = useState('login');
+export default function AuthModal({ onClose, onDone, startMode, note }) {
+  const [mode, setMode] = useState(startMode || 'login');
   const [form, setForm] = useState({ login: '', password: '', nick: '' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,7 +31,7 @@ export default function AuthModal({ onClose }) {
     try {
       if (mode === 'login') await login(form.login, form.password);
       else await register(form.login, form.password, form.nick || form.login);
-      onClose();
+      if (onDone) onDone(); else onClose();
     } catch (ex) { setErr(ex.message); }
     setBusy(false);
   };
@@ -42,6 +42,7 @@ export default function AuthModal({ onClose }) {
         <button type="button" className={mode === 'login' ? 'on' : ''} onClick={() => { setMode('login'); setErr(''); }}>Вход</button>
         <button type="button" className={mode === 'reg' ? 'on' : ''} onClick={() => { setMode('reg'); setErr(''); }}>Регистрация</button>
       </div>
+      {note && <p className="muted">{note}</p>}
       <form className="form" onSubmit={submit}>
         <label>Логин
           <input autoFocus value={form.login} onChange={ch('login')} autoComplete="username" maxLength={20} placeholder="латиница, цифры, _" />

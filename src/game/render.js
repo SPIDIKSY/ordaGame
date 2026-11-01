@@ -635,16 +635,19 @@ function draw(now) {
   if (g.hurtFx > 0 && redVig) { ctx.globalAlpha = Math.min(1, g.hurtFx / 0.4); ctx.drawImage(redVig, 0, 0, W, H); ctx.globalAlpha = 1; }
   if (g.flash > 0) { ctx.fillStyle = 'rgba(255,244,220,' + Math.min(0.7, g.flash * 1.8).toFixed(2) + ')'; ctx.fillRect(0, 0, W, H); }
 
-  // стрелки к сундукам за краем экрана
-  for (let i = 0; i < g.chests.length; i++) {
-    const c = g.chests[i], x = c.x - cx, y = c.y - cy;
-    if (x > 10 && x < W - 10 && y > 10 && y < H - 10) continue;
+  // стрелки к сундукам и боссам за краем экрана
+  const edgePoint = (x, y) => {
     const dx = x - hx, dy = y - hy, a = Math.atan2(dy, dx);
     const top = 150, bottom = H - 40, left = 26, right = W - 26;
     let k = Infinity;
     if (dx > 0) k = Math.min(k, (right - hx) / dx); if (dx < 0) k = Math.min(k, (left - hx) / dx);
     if (dy > 0) k = Math.min(k, (bottom - hy) / dy); if (dy < 0) k = Math.min(k, (top - hy) / dy);
-    const ax = hx + dx * k, ay = hy + dy * k;
+    return { ax: hx + dx * k, ay: hy + dy * k, a };
+  };
+  for (let i = 0; i < g.chests.length; i++) {
+    const c = g.chests[i], x = c.x - cx, y = c.y - cy;
+    if (x > 10 && x < W - 10 && y > 10 && y < H - 10) continue;
+    const { ax, ay, a } = edgePoint(x, y);
     ctx.globalCompositeOperation = 'lighter'; blitGlow(GLOW.gold, ax, ay, 46, 0.6 + 0.3 * Math.sin(now / 200));
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     ctx.setTransform(dpr * Math.cos(a), dpr * Math.sin(a), -dpr * Math.sin(a), dpr * Math.cos(a), dpr * ax, dpr * ay);
@@ -652,6 +655,32 @@ function draw(now) {
     ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-6, -8); ctx.lineTo(-2, 0); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+  for (let i = 0; i < g.enemies.length; i++) {
+    const e = g.enemies[i]; if (!e.T.boss || e.dead) continue;
+    const x = e.x - cx, y = e.y - cy;
+    if (x > -e.r && x < W + e.r && y > -e.r && y < H + e.r) continue;
+    const { ax, ay, a } = edgePoint(x, y), pulse = 0.5 + 0.5 * Math.sin(now / 160);
+    ctx.globalCompositeOperation = 'lighter'; blitGlow(GLOW.red, ax, ay, 64 + pulse * 14, 0.7 + 0.3 * pulse);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    // стрелка
+    ctx.setTransform(dpr * Math.cos(a), dpr * Math.sin(a), -dpr * Math.sin(a), dpr * Math.cos(a), dpr * ax, dpr * ay);
+    ctx.fillStyle = '#ff4a5e'; ctx.strokeStyle = '#4a0612'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(9, -9); ctx.lineTo(12, 0); ctx.lineTo(9, 9); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // кружок с черепом
+    ctx.fillStyle = '#2a0610'; ctx.strokeStyle = '#ff4a5e'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(ax, ay, 12, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffe6ea';
+    ctx.beginPath(); ctx.arc(ax, ay - 1.5, 5.6, 0, TAU); ctx.fill(); ctx.fillRect(ax - 3.4, ay + 2, 6.8, 3.6);
+    ctx.fillStyle = '#2a0610'; ctx.beginPath(); ctx.arc(ax - 2.2, ay - 1.6, 1.5, 0, TAU); ctx.arc(ax + 2.2, ay - 1.6, 1.5, 0, TAU); ctx.fill();
+    // сколько до босса
+    const dist = Math.round(Math.hypot(e.x - G.p.x, e.y - G.p.y) / 10);
+    ctx.font = '600 11px Rubik, system-ui, sans-serif'; ctx.textAlign = 'center';
+    const ty = ay + (ay > H / 2 ? -20 : 26);
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,12,20,.85)'; ctx.strokeText(dist + ' м', ax, ty);
+    ctx.fillStyle = '#ffb0b8'; ctx.fillText(dist + ' м', ax, ty);
+  }
+
 
   // джойстик
   if (state === 'play' || state === 'pause') drawStick();
