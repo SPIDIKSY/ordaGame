@@ -8,17 +8,26 @@ import { ui } from '../game/store.js';
 
 const set = (account) => ui.set({ account });
 
-export async function initAccount() {
-  set({ status: 'checking', user: null });
+// Если сервер временно недоступен — сами пробуем снова каждые 15 секунд
+let retryTimer = 0;
+function goOffline() {
+  set({ status: 'offline', user: null });
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => initAccount(true), 15000);
+}
+
+export async function initAccount(quiet) {
+  clearTimeout(retryTimer);
+  if (!quiet) set({ status: 'checking', user: null });
   if (getToken()) {
     try { const r = await api.me(); set({ status: 'user', user: r.user, best: r.best }); return; }
     catch (e) {
       if (e.status === 401) setToken('');
-      else { set({ status: 'offline', user: null }); return; }
+      else { goOffline(); return; }
     }
   }
   try { await api.health(); set({ status: 'guest', user: null }); }
-  catch (_) { set({ status: 'offline', user: null }); }
+  catch (_) { goOffline(); }
 }
 
 export async function register(login, password, nick) {
