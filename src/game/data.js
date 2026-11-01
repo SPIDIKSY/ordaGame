@@ -150,7 +150,7 @@ export const STATS = [
 // Герои (как они выглядят — см. src/game/sprites/heroes.js)
 export const HEROES = [
   { id: 'mage', name: 'Маг', weapon: 'staff', hp: 100, speed: 150, eff: { area: 0.1 }, perk: '100 здоровья · +10% площади атак' },
-  { id: 'knight', name: 'Рыцарь', weapon: 'whip', hp: 150, speed: 135, eff: { armor: 2 }, perk: '150 здоровья · +2 брони · медленнее остальных' },
+  { id: 'knight', name: 'Рыцарь', weapon: 'whip', hp: 150, speed: 140, eff: { armor: 2 }, perk: '150 здоровья · +2 брони · медленнее остальных' },
   { id: 'rogue', name: 'Разбойница', weapon: 'knife', hp: 80, speed: 175, eff: { crit: 0.1 }, perk: '80 здоровья · самая быстрая · +10% шанса крита' },
   { id: 'druid', name: 'Друид', weapon: 'puddle', hp: 110, speed: 150, eff: { regen: 0.8, dur: 0.2 }, perk: '110 здоровья · +0,8 здоровья в секунду · яд держится дольше' },
   { id: 'necro', name: 'Некромант', weapon: 'wisp', hp: 90, speed: 145, eff: { amount: 1, dmg: -0.1 }, perk: '90 здоровья · +1 снаряд ко всему оружию · −10% урона' }

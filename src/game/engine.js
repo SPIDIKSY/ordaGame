@@ -12,6 +12,7 @@ import {
 import { SPR } from './sprites/enemies.js';
 import { PUS, PU_W, BUFF_TIME } from './sprites/world.js';
 import { HERO_LOOK, getHeroSprites } from './sprites/heroes.js';
+import { BIOMES, BIOME_EVERY, HELL } from './sprites/biomes.js';
 import { render, resizeRender } from './render.js';
 import { ui, hud } from './store.js';
 import { api } from '../net/api.js';
@@ -91,6 +92,8 @@ function applyEff(p, eff) {
   recalc(p);
 }
 
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
 function newGame() {
   const h = HDEF[heroId] || HEROES[0];
   G = {
@@ -99,7 +102,7 @@ function newGame() {
       x: 0, y: 0, r: 14, hp: h.hp, maxHp: h.hp, baseSpeed: h.speed, b: { dmg: 0, haste: 0, speed: 0, magnet: 0, pspeed: 0, range: 0 },
       area: 1, dur: 1, amount: 0, regen: 0, crit: 0.05, critDmg: 2, vamp: 0, armor: 0, luck: 0, xpMul: 1, dodge: 0, thorns: 0, revive: 0,
       inv: 0, hurt: 0, face: 1, dirX: 1, dirY: 0, walkT: 0, moving: false, bladeA: 0, webT: 0,
-      atk: -1, atkDur: (HERO_LOOK[h.id] || HERO_LOOK.mage).atk
+      atk: -1, faceLock: 0, atkDur: (HERO_LOOK[h.id] || HERO_LOOK.mage).atk
     },
     w: { [h.weapon]: 1 }, wOrder: [h.weapon], wt: { [h.weapon]: 0.2 }, r: {}, rOrder: [], st: {}, stOrder: [], inv: {}, invOrder: [], frostA: 0,
     doom: false, doomWarn: false, doomMin: 0, vampBank: 0, eshots: [], bossN: 0,
@@ -107,8 +110,11 @@ function newGame() {
     spawnAcc: 0, nextId: 1, waveT: 25, bossT: 150, eliteT: 45, unlocked: 1,
     pickups: [], buffs: { rage: 0, haste: 0 }, flash: 0, shake: 0, corpses: [], fx: [],
     lvlFx: 0, lvlArm: false, hurtFx: 0, dustT: 0, bladeN: 0, bladeR: 64, bossKills: 0,
-    run: { id: null, chain: Promise.resolve(), nextBeat: 15, rejected: null }
+    run: { id: null, chain: Promise.resolve(), nextBeat: 15, rejected: null },
+    // порядок местностей в этом забеге (Пекло всегда в конце)
+    biomeOrder: shuffle([0, 1, 2, 3]), biome: 0, biomePrev: null, biomeK: 1
   };
+  G.biome = G.biomeOrder[0];
   applyEff(G.p, h.eff);
   heroSpr = getHeroSprites(h.id);
 }
@@ -117,6 +123,7 @@ function newGame() {
 function heroAttack() {
   const p = G.p;
   if (p.atk < 0 || p.atk > 0.6) p.atk = 0;
+  p.faceLock = p.atkDur * 0.8; // смотрим на цель, пока бьём
 }
 
 /* --- рост врагов и Волна смерти --- */
@@ -219,8 +226,9 @@ function usePickup(q) {
     toast(D.name + ': ' + (q.kind === 'rage' ? 'двойной урон' : 'бег и атака быстрее') + ' на ' + Math.round(BUFF_TIME * p.dur) + ' сек');
   }
 }
-function hurtPlayer(d, src) {
+function hurtPlayer(d, src, label) {
   const g = G, p = g.p;
+  if (g.dmgBy) { const k = label || (src ? src.T.key : '?'); g.dmgBy[k] = (g.dmgBy[k] || 0) + Math.max(d * 0.35, d - p.armor); }
   g.hurtFx = 0.4; g.shake = Math.max(g.shake, 0.12);
   // броня срезает не больше 65% удара
   p.hp -= Math.max(d * 0.35, d - p.armor); p.inv = 0.3; p.hurt = 0.25;
@@ -326,7 +334,7 @@ function castChain(l) {
   const g = G, p = g.p, cand = enemiesWithin(380);
   if (!cand.length) return false;
   let cur = cand[Math.floor(Math.random() * cand.length)];
-  const hit = [cur.id], dmg = p.dmg * (1.6 + 0.45 * l), jumps = 3 + l + p.amount;
+  const hit = [cur.id], dmg = p.dmg * (1.45 + 0.4 * l), jumps = 3 + l + p.amount;
   let px = p.x + 12 * p.face, py = p.y - 15;
   for (let j = 0; j <= jumps && cur; j++) {
     g.bolts.push({ pts: jag(px, py, cur.x, cur.y), A: [px, py], B: [cur.x, cur.y], life: 0.24 });
@@ -384,8 +392,8 @@ function fireWeapon(id, l) {
       const t = nearest(p.x, p.y, 380 * p.rangeMul);
       if (t) { fireStaff(t, l); g.wt[id] = 0.55 * (l >= 6 ? 0.8 : 1) * cdK(); } else g.wt[id] = 0.05;
     } else if (id === 'nova') {
-      g.wt[id] = Math.max(2.2, 5 - 0.45 * l) * cdK();
-      const rad = (100 + 14 * l) * p.area, d = p.dmg * (1.2 + 0.5 * l);
+      g.wt[id] = Math.max(2, 4.4 - 0.4 * l) * cdK();
+      const rad = (100 + 14 * l) * p.area, d = p.dmg * (1.5 + 0.55 * l);
       for (let i = 0; i < g.enemies.length; i++) {
         const e = g.enemies[i]; if (e.dead) continue;
         const dx = e.x - p.x, dy = e.y - p.y, dd = Math.hypot(dx, dy) || 1;
@@ -410,7 +418,7 @@ function fireWeapon(id, l) {
       const n = 6 + 2 * l + 2 * A, sp = 360 * p.pspeedMul; g.frostA += 0.37;
       for (let i = 0; i < n; i++) {
         const a = g.frostA + i * TAU / n;
-        shoot({ kind: 'frost', x: p.x, y: p.y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (0.8 + 0.3 * l), pierce: 1 + l, life: 0.95, r: 7 });
+        shoot({ kind: 'frost', x: p.x, y: p.y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (0.7 + 0.26 * l), pierce: 1 + l, life: 0.95, r: 7 });
       }
     } else if (id === 'axe') {
       g.wt[id] = Math.max(0.9, 1.9 - 0.14 * l) * cdK();
@@ -421,7 +429,10 @@ function fireWeapon(id, l) {
       }
     } else if (id === 'knife') {
       g.wt[id] = Math.max(0.3, 0.95 - 0.08 * l) * cdK();
-      const n = 1 + Math.floor(l / 2) + A, sp = 650 * p.pspeedMul, dx = p.dirX, dy = p.dirY;
+      const n = 1 + Math.floor(l / 2) + A, sp = 650 * p.pspeedMul;
+      let dx = p.dirX, dy = p.dirY;
+      // стоя на месте — кидаем в ближайшего врага, на бегу — куда бежим
+      if (!p.moving) { const t = nearest(p.x, p.y, 420); if (t) { const a = Math.atan2(t.y - p.y, t.x - p.x); dx = Math.cos(a); dy = Math.sin(a); p.face = dx >= 0 ? 1 : -1; } }
       for (let i = 0; i < n; i++) {
         const off = (i - (n - 1) / 2) * 9;
         shoot({ kind: 'knife', x: p.x - dy * off, y: p.y - 4 + dx * off, vx: dx * sp, vy: dy * sp, dmg: p.dmg * (0.9 + 0.22 * l), pierce: Math.floor(l / 3), life: 0.7 * p.rangeMul, r: 6 });
@@ -433,25 +444,30 @@ function fireWeapon(id, l) {
       const n = 1 + Math.floor(l / 3) + A, sp = 260 * p.pspeedMul;
       for (let i = 0; i < n; i++) {
         const t = cand[Math.floor(Math.random() * cand.length)], a = leadAim(p.x, p.y - 8, t, sp) + rnd(-0.08, 0.08);
-        shoot({ kind: 'fire', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (2.4 + 0.6 * l), boom: (55 + 8 * l) * p.area, pierce: 0, life: 2.2, r: 10 });
+        shoot({ kind: 'fire', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (2.1 + 0.55 * l), boom: (55 + 8 * l) * p.area, pierce: 0, life: 2.2, r: 10 });
       }
     } else if (id === 'puddle') {
-      g.wt[id] = Math.max(2.2, 4.2 - 0.28 * l) * cdK();
-      const n = 1 + Math.floor(l / 3) + A, cand = enemiesWithin(300);
+      g.wt[id] = Math.max(1.8, 3.4 - 0.24 * l) * cdK();
+      const n = 1 + Math.floor(l / 3) + A, cand = enemiesWithin(320);
       for (let i = 0; i < n; i++) {
         let tx, ty;
         if (cand.length) { const e = cand[Math.floor(Math.random() * cand.length)]; tx = e.x; ty = e.y; }
         else { const a = Math.random() * TAU; tx = p.x + Math.cos(a) * 110; ty = p.y + Math.sin(a) * 110; }
-        g.flasks.push({ sx: p.x, sy: p.y - 10, tx, ty, t: 0, T: 0.5 + i * 0.08, r: (46 + 6 * l) * p.area, life: (2.4 + 0.3 * l) * p.dur, dmg: p.dmg * (0.5 + 0.15 * l) });
+        g.flasks.push({ sx: p.x, sy: p.y - 10, tx, ty, t: 0, T: 0.5 + i * 0.08, r: (52 + 7 * l) * p.area, life: (2.6 + 0.3 * l) * p.dur, dmg: p.dmg * (0.75 + 0.18 * l) });
       }
     } else if (id === 'whip') {
-      g.wt[id] = (l >= 6 ? 1.0 : 1.3) * cdK();
-      const dmgF = [1.6, 1.6, 2.1, 2.1, 2.7, 2.7, 3.7][l - 1], len = 150 * p.area * (l >= 4 ? 1.3 : 1), hh = 36 * Math.sqrt(p.area);
+      g.wt[id] = (l >= 6 ? 0.95 : 1.2) * cdK();
+      const dmgF = [1.9, 1.9, 2.5, 2.5, 3.2, 3.2, 4.4][l - 1], len = 150 * p.area * (l >= 4 ? 1.3 : 1), hh = 36 * Math.sqrt(p.area);
+      // меч бьёт в сторону ближайшего врага; если рядом никого — не машет впустую
+      const tgt = nearest(p.x, p.y, len + 60);
+      if (!tgt) { g.wt[id] = 0.1; return; }
+      const front = tgt.x >= p.x ? 1 : -1, aimY = Math.max(-30, Math.min(30, tgt.y - p.y));
+      p.face = front;
       const sides = l >= 2 ? 2 : 1, n = 1 + A;
       for (let k = 0; k < sides; k++) {
-        const dir = k === 0 ? p.face : -p.face;
+        const dir = k === 0 ? front : -front;
         for (let j = 0; j < n; j++) {
-          const oy = (j - (n - 1) / 2) * hh * 0.9, cx0 = p.x + dir * len / 2, cy0 = p.y - 4 + oy;
+          const oy = (j - (n - 1) / 2) * hh * 0.9 + (k === 0 ? aimY : 0), cx0 = p.x + dir * len / 2, cy0 = p.y - 4 + oy;
           for (let q = 0; q < g.enemies.length; q++) {
             const e = g.enemies[q]; if (e.dead) continue;
             if (Math.abs(e.x - cx0) < len / 2 + e.r && Math.abs(e.y - cy0) < hh / 2 + e.r) hitEnemy(e, p.dmg * dmgF, dir * 140, 0);
@@ -500,11 +516,11 @@ function fireWeapon(id, l) {
         for (let k = 0; k < 3; k++) addFx({ type: 'dust', x: sx + rnd(-R / 2, R / 2), y: sy + rnd(-4, 6), vx: rnd(-25, 25), vy: rnd(-30, -10), life: 0.5, T: 0.5, r: rnd(4, 7), col: '120,105,90' });
       }
     } else if (id === 'wisp') {
-      g.wt[id] = Math.max(1.0, 2.1 - 0.15 * l) * cdK();
-      const n = 2 + Math.floor(l / 2) + A, sp = 280 * p.pspeedMul;
+      g.wt[id] = Math.max(0.9, 1.8 - 0.13 * l) * cdK();
+      const n = 3 + Math.floor(l / 2) + A, sp = 300 * p.pspeedMul;
       for (let i = 0; i < n; i++) {
         const a = i * TAU / n + rnd(-0.3, 0.3);
-        shoot({ kind: 'wisp', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spd: sp, dmg: p.dmg * (1.1 + 0.3 * l), pierce: 0, life: 3, r: 8, tgt: null });
+        shoot({ kind: 'wisp', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spd: sp, dmg: p.dmg * (1.3 + 0.32 * l), pierce: 1, life: 3.2, r: 9, tgt: null });
       }
     }
   }
@@ -528,7 +544,7 @@ function updateZoneWeapons(dt) {
   // круговые лезвия
   if (g.w.blades) {
     const l = g.w.blades, n = [1, 2, 2, 3, 3, 4, 5][l - 1] + A, R = 54 + 10 * p.area;
-    const d = p.dmg * [0.7, 0.7, 0.95, 0.95, 1.2, 1.2, 1.5][l - 1];
+    const d = p.dmg * [0.9, 0.9, 1.1, 1.1, 1.35, 1.35, 1.65][l - 1];
     g.bladeN = n; g.bladeR = R; p.bladeA += (3.2 + 0.15 * l) * dt;
     for (let i = 0; i < n; i++) {
       const a = p.bladeA + i * TAU / n, bx = p.x + Math.cos(a) * R, by = p.y + Math.sin(a) * R;
@@ -614,9 +630,11 @@ function spawnAt(T, x, y) {
 function eShoot(e, a, sp, kind) {
   if (G.eshots.length < 220) G.eshots.push({ x: e.x, y: e.y - 6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, kind, r: kind === 'orb' ? 8 : 6, dmg: e.dmg * (kind === 'arrow' ? 0.7 : 0.55), life: 4 });
 }
+// Пороховой бес: радиус взрыва и сколько секунд горит фитиль
+export const IMP_R = 72, IMP_FUSE = 0.9;
 function impBoom(e) {
-  const g = G, p = g.p, R = 85;
-  if (Math.hypot(p.x - e.x, p.y - e.y) < R + p.r && p.inv <= 0) hurtPlayer(e.dmg * 1.6, null);
+  const g = G, p = g.p, R = IMP_R;
+  if (Math.hypot(p.x - e.x, p.y - e.y) < R + p.r && p.inv <= 0) hurtPlayer(e.dmg * 1.15, null, 'imp-boom');
   g.rings.push({ x: e.x, y: e.y, max: R, age: 0, life: 0.4, col: '255,120,60' });
   burst(e.x, e.y, '#ffb35a', 20, 260); burst(e.x, e.y, '#ff4a2e', 10, 180);
   addFx({ type: 'decal', x: e.x, y: e.y, r: 50, life: 1.5, T: 1.5 });
@@ -636,7 +654,7 @@ function enemyAI(e, d, mx, my, dt) {
       return 1;
     case 'bomber':
       if (e.fuse > 0) { e.fuse -= dt; if (Math.floor(e.fuse * 14) % 2 === 0) e.flash = 0.05; if (e.fuse <= 0) impBoom(e); return 0; }
-      if (d < 70) { e.fuse = 0.7; return 0; }
+      if (d < 70) { e.fuse = IMP_FUSE; return 0; }
       return 1;
     case 'blink':
       if (e.atk <= 0 && d > 150 && d < 650) {
@@ -657,7 +675,7 @@ function enemyAI(e, d, mx, my, dt) {
         e.cast -= dt;
         if (e.cast <= 0) {
           const R = 180;
-          if (Math.hypot(p.x - e.x, p.y - e.y) < R && p.inv <= 0) hurtPlayer(e.dmg, null);
+          if (Math.hypot(p.x - e.x, p.y - e.y) < R && p.inv <= 0) hurtPlayer(e.dmg, null, 'slam');
           g.rings.push({ x: e.x, y: e.y, max: R, age: 0, life: 0.5, col: '160,210,255' });
           g.rings.push({ x: e.x, y: e.y, max: R * 0.6, age: 0, life: 0.35, col: '255,255,255' });
           burst(e.x, e.y, '#bfe6ff', 30, 300);
@@ -731,7 +749,8 @@ function update(dt) {
   p.x += ix * p.speed * hasteK * dt; p.y += iy * p.speed * hasteK * dt;
   p.moving = Math.hypot(ix, iy) > 0.05;
   if (p.moving) { p.walkT += dt * (0.6 + Math.hypot(ix, iy) * 0.6); const m = Math.hypot(ix, iy); p.dirX = ix / m; p.dirY = iy / m; }
-  if (ix > 0.2) p.face = 1; else if (ix < -0.2) p.face = -1;
+  if (p.faceLock > 0) p.faceLock -= dt;
+  else if (ix > 0.2) p.face = 1; else if (ix < -0.2) p.face = -1;
   p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
   if (p.inv > 0) p.inv -= dt;
   if (p.hurt > 0) p.hurt -= dt;
@@ -753,6 +772,15 @@ function update(dt) {
   if (g.doom) {
     const m = Math.floor((t - DOOM_T) / 60);
     if (m > g.doomMin) { g.doomMin = m; g.shake = 0.3; toast('Волна смерти усилилась: ' + (m + 1) + '-я минута'); }
+  }
+  // смена местности
+  {
+    const want = g.doom ? HELL : g.biomeOrder[Math.min(g.biomeOrder.length - 1, Math.floor(t / BIOME_EVERY))];
+    if (want !== g.biome) {
+      g.biomePrev = g.biome; g.biome = want; g.biomeK = 0;
+      if (want !== HELL) toast('Местность: ' + BIOMES[want].name);
+    }
+    if (g.biomeK < 1) g.biomeK = Math.min(1, g.biomeK + dt / 3);
   }
   g.vampBank = Math.min(p.maxHp * 0.04, g.vampBank + p.maxHp * 0.03 * dt);
 
@@ -824,7 +852,15 @@ function update(dt) {
       }
     }
     else if (s.kind === 'wisp') {
-      if (!s.tgt || s.tgt.dead) s.tgt = nearest(s.x, s.y, 520);
+      if (!s.tgt || s.tgt.dead || s.hit.indexOf(s.tgt.id) >= 0) {
+        // новая цель — ближайший враг, которого этот огонёк ещё не задел
+        let best = null, bd = 520 * 520;
+        for (let j = 0; j < g.enemies.length; j++) {
+          const e = g.enemies[j]; if (e.dead || s.hit.indexOf(e.id) >= 0) continue;
+          const d2 = (e.x - s.x) ** 2 + (e.y - s.y) ** 2; if (d2 < bd) { bd = d2; best = e; }
+        }
+        s.tgt = best;
+      }
       if (s.tgt) {
         const want = Math.atan2(s.tgt.y - s.y, s.tgt.x - s.x), cur = Math.atan2(s.vy, s.vx);
         let da = want - cur; while (da > Math.PI) da -= TAU; while (da < -Math.PI) da += TAU;
@@ -856,7 +892,7 @@ function update(dt) {
     if (s.life > 0 && p.inv <= 0 && state === 'play' && Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r - 2) {
       s.life = 0;
       if (Math.random() < Math.min(0.4, p.dodge)) pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false);
-      else { hurtPlayer(s.dmg, null); if (s.kind === 'web') { p.webT = 1.6; pop(p.x, p.y - 30, 'Паутина', '#e2c9ff', false); } }
+      else { hurtPlayer(s.dmg, null, 'shot-' + s.kind); if (s.kind === 'web') { p.webT = 1.6; pop(p.x, p.y - 30, 'Паутина', '#e2c9ff', false); } }
     }
   }
   g.eshots = g.eshots.filter((s) => s.life > 0);
@@ -1040,21 +1076,41 @@ function invSnapshot(newId) {
 function publishInv(newId) { ui.set({ inv: invSnapshot(newId) }); }
 
 function pauseSnapshot() {
-  const row = (icon, col, em, name, small) => ({ icon, col, em, name, small });
-  const sections = [];
-  sections.push({ title: 'Оружие · ' + G.wOrder.length + ' из ' + MAX_WEAPONS,
-    rows: G.wOrder.map((id) => { const Wd = WDEF[id]; return row(Wd.icon, RAR[4].col, 'ур. ' + G.w[id] + ' из ' + WMAX, Wd.name, Wd.desc); }) });
-  sections.push({ title: 'Реликвии · ' + G.rOrder.length + ' из ' + MAX_RELICS,
-    empty: G.rOrder.length ? '' : 'Реликвии появляются среди карточек нового уровня.',
-    rows: G.rOrder.map((id) => { const R = RDEF[id], n = G.r[id]; return row(R.icon, RCOL, 'ур. ' + n + ' из ' + RMAX, R.name, effText(scaleEff(R.eff, n))); }) });
-  if (G.stOrder.length) sections.push({ title: 'Характеристики',
-    rows: G.stOrder.map((id) => { const S = SDEF[id], k = G.st[id]; return row(S.icon, RAR[k.best].col, 'ур. ' + k.n + ' из ' + S.max, S.name, effText(k.total)); }) });
-  if (G.invOrder.length) sections.push({ title: 'Предметы из сундуков',
-    rows: G.invOrder.map((id) => {
-      const it = ITEMS.find((q) => q.id === id), k = G.inv[id];
-      return row(it.icon, RAR[k.best].col, k.count > 1 ? 'Собрано: ' + k.count + ' шт.' : RAR[k.best].name, it.name, effText(k.total));
-    }) });
-  return sections;
+  const p = G.p, H0 = HDEF[G.hero] || HEROES[0];
+  const pc = (v) => Math.round(v * 100);
+  const mod = (v) => (Math.abs(v) < 0.005 ? '0%' : (v > 0 ? '+' : '−') + Math.abs(pc(v)) + '%');
+  const tone = (v) => (v > 0.001 ? 'up' : v < -0.001 ? 'down' : '');
+  const dec1 = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+  const stats = [
+    { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
+    { id: 'dmg', label: 'Урон', value: mod(p.b.dmg), tone: tone(p.b.dmg) },
+    { id: 'haste', label: 'Скорость атаки', value: mod(p.b.haste), tone: tone(p.b.haste) },
+    { id: 'area', label: 'Площадь', value: mod(p.area - 1), tone: tone(p.area - 1) },
+    { id: 'amount', label: 'Снаряды', value: '+' + p.amount, tone: tone(p.amount) },
+    { id: 'pspeed', label: 'Скорость снарядов', value: mod(p.b.pspeed), tone: tone(p.b.pspeed) },
+    { id: 'range', label: 'Дальность', value: mod(p.b.range), tone: tone(p.b.range) },
+    { id: 'dur', label: 'Длительность', value: mod(p.dur - 1), tone: tone(p.dur - 1) },
+    { id: 'armor', label: 'Броня', value: String(p.armor), tone: tone(p.armor) },
+    { id: 'regen', label: 'Регенерация', value: dec1(p.regen) + '/с', tone: tone(p.regen) },
+    { id: 'speed', label: 'Скорость бега', value: mod(p.b.speed), tone: tone(p.b.speed) },
+    { id: 'magnet', label: 'Притяжение', value: mod(p.b.magnet), tone: tone(p.b.magnet) },
+    { id: 'crit', label: 'Шанс крита', value: pc(p.crit) + '%', tone: tone(p.crit - 0.05) },
+    { id: 'critDmg', label: 'Сила крита', value: '×' + dec1(p.critDmg), tone: tone(p.critDmg - 2) },
+    { id: 'xp', label: 'Опыт', value: mod(p.xpMul - 1), tone: tone(p.xpMul - 1) },
+    { id: 'luck', label: 'Удача', value: mod(p.luck), tone: tone(p.luck) },
+    { id: 'vamp', label: 'Вампиризм', value: dec1(p.vamp), tone: tone(p.vamp) },
+    { id: 'dodge', label: 'Уклонение', value: pc(Math.min(0.4, p.dodge)) + '%', tone: tone(p.dodge) },
+    { id: 'thorns', label: 'Шипы', value: String(Math.round(p.thorns)), tone: tone(p.thorns) },
+    { id: 'revive', label: 'Воскрешения', value: String(p.revive), tone: tone(p.revive) }
+  ];
+  const gear = [];
+  G.wOrder.forEach((id) => gear.push({ key: 'w' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), title: WDEF[id].name + ' · ур. ' + G.w[id] }));
+  G.rOrder.forEach((id) => gear.push({ key: 'r' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), title: RDEF[id].name + ' · ур. ' + G.r[id] }));
+  G.invOrder.forEach((id) => {
+    const it = ITEMS.find((q) => q.id === id), k = G.inv[id];
+    gear.push({ key: 'i' + id, icon: it.icon, col: RAR[k.best].col, badge: k.count > 1 ? '×' + k.count : '', title: it.name + ': ' + effText(k.total) });
+  });
+  return { stats, gear, hero: H0.name, time: fmt(G.t), level: G.level, kills: G.kills };
 }
 
 /* =====================================================
@@ -1293,11 +1349,77 @@ export const game = {
 
 // Только для разработки (npm run dev): доступ к игре из консоли браузера — window.__orda
 if (import.meta.env && import.meta.env.DEV) {
+  // Бот для проверки баланса: убегает от врагов, собирает опыт, сам выбирает улучшения
+  const botInput = () => {
+    const p = G.p; let ax = 0, ay = 0;
+    for (const e of G.enemies) {
+      const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
+      if (e.fuse > 0 && d < 130) { ax += dx / d * 40; ay += dy / d * 40; continue; }
+      if (d > 150) continue;
+      const w = (e.T.boss ? 4 : e.elite ? 2 : 1) * 2500 / Math.max(12, d - e.r) ** 2;
+      ax += dx / d * w; ay += dy / d * w;
+    }
+    for (const sh of G.eshots) {
+      const dx = p.x - sh.x, dy = p.y - sh.y, d = Math.hypot(dx, dy) || 1;
+      if (d < 140) { const w = 6000 / Math.max(10, d) ** 2; ax += dx / d * w; ay += dy / d * w; }
+    }
+    const danger = Math.hypot(ax, ay);
+    let tx = 0, ty = 0, best = 300 * 300;
+    for (const c of G.chests) { const d2 = (c.x - p.x) ** 2 + (c.y - p.y) ** 2; if (d2 < 600 * 600) { best = -1; tx = c.x - p.x; ty = c.y - p.y; break; } }
+    if (best > 0) for (const gm of G.gems) { const d2 = (gm.x - p.x) ** 2 + (gm.y - p.y) ** 2; if (d2 < best) { best = d2; tx = gm.x - p.x; ty = gm.y - p.y; } }
+    // если опыта рядом нет — подходим к врагам на расстояние удара
+    if (best === 300 * 300) {
+      const e = nearest(p.x, p.y, 700);
+      if (e) { const ex = e.x - p.x, ey = e.y - p.y, d = Math.hypot(ex, ey) || 1; if (d > 110) { tx = ex; ty = ey; } }
+    }
+    const tl = Math.hypot(tx, ty) || 1;
+    let vx = ax + tx / tl * (danger < 1.2 ? 1.2 : 0.3), vy = ay + ty / tl * (danger < 1.2 ? 1.2 : 0.3);
+    // немного кружим, чтобы не упираться в толпу
+    vx += -ay * 0.4; vy += ax * 0.4;
+    const l = Math.hypot(vx, vy);
+    if (l < 0.05) { stick.vx = 0; stick.vy = 0; return; }
+    stick.vx = vx / l; stick.vy = vy / l;
+  };
+  let soloMode = false;
+  const botPick = () => {
+    const owned = G.wOrder.length;
+    let bi = 0, bs = -1;
+    curChoices.forEach((c, i) => {
+      let sc = Math.random();
+      if (soloMode && c.type === 'wnew') sc -= 10;
+      if (c.type === 'wup') sc += 3;
+      else if (c.type === 'wnew') sc += owned < 4 ? 2.5 : 0.5;
+      else if (c.type === 'rnew' || c.type === 'rup') sc += 1.5;
+      else if (c.type === 'stat') sc += 1 + c.r * 0.3;
+      if (sc > bs) { bs = sc; bi = i; }
+    });
+    acceptAt = 0; pickChoice(bi);
+  };
   window.__orda = {
     get G() { return G; },
     get state() { return state; },
     openChest: (kind) => openChest(kind || 'boss'),
     levelUp: () => { if (G) { G.pending++; } },
-    heroAttack: () => G && heroAttack()
+    heroAttack: () => G && heroAttack(),
+    // Прогон забега без отрисовки. Пример: __orda.sim({ hero: 'knight', max: 900 })
+    sim(o) {
+      const opt = Object.assign({ hero: 'mage', max: 900, dt: 1 / 30, weapon: null }, o);
+      selectHero(opt.hero);
+      startGame();
+      if (opt.weapon) { G.w = { [opt.weapon]: 1 }; G.wOrder = [opt.weapon]; G.wt = { [opt.weapon]: 0.2 }; G.heroWeapon = opt.weapon; }
+      G.dmgBy = {}; soloMode = !!opt.solo;
+      let steps = 0;
+      const t0 = performance.now();
+      while (state !== 'dead' && G.t < opt.max) {
+        if (state === 'levelup') { botPick(); continue; }
+        if (state === 'chest') { takeChest(); continue; }
+        botInput();
+        update(opt.dt); steps++;
+      }
+      const r = { hero: opt.hero, time: Math.round(G.t), kills: G.kills, level: G.level, weapons: G.wOrder.map((id) => id + G.w[id]).join(','),
+        dmgBy: G.dmgBy, hp: Math.round(G.p.hp), ms: Math.round(performance.now() - t0), dead: state === 'dead' };
+      stickReset(); goMenu();
+      return r;
+    }
   };
 }

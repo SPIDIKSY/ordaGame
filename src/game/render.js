@@ -4,8 +4,10 @@
    ===================================================== */
 import { TAU, rnd, rg, jag, setGlowScale } from './gfx.js';
 import { SPR } from './sprites/enemies.js';
-import { GLOW, BEAM, GEMS, HEARTSPR, CHEST, PUS, DECOR, TILE, tile, AXE, KNIFE, FLASK, BOOMER } from './sprites/world.js';
+import { GLOW, BEAM, GEMS, HEARTSPR, CHEST, PUS, TILE, AXE, KNIFE, FLASK, BOOMER } from './sprites/world.js';
 import { drawHeroArm } from './sprites/heroes.js';
+import { BIOMES } from './sprites/biomes.js';
+import { IMP_R, IMP_FUSE } from './engine.js';
 
 let ctx = null, G = null, state = 'menu', W = 0, H = 0, dpr = 1, hx = 0, hy = 0, stick = null, heroSpr = null;
 let vig = null, redVig = null;
@@ -36,17 +38,95 @@ function hash(x, y) {
   return (n >>> 0) / 4294967296;
 }
 
-function drawGround(cx, cy) {
+function drawGround(cx, cy, B, alpha) {
+  ctx.globalAlpha = alpha;
   const ox = -(((cx % TILE) + TILE) % TILE), oy = -(((cy % TILE) + TILE) % TILE);
-  for (let x = Math.floor(ox); x < W; x += TILE) for (let y = Math.floor(oy); y < H; y += TILE) ctx.drawImage(tile, x, y, TILE + 0.5, TILE + 0.5);
+  for (let x = Math.floor(ox); x < W; x += TILE) for (let y = Math.floor(oy); y < H; y += TILE) ctx.drawImage(B.tile, x, y, TILE + 0.5, TILE + 0.5);
   const cs = 120, ix0 = Math.floor(cx / cs) - 1, iy0 = Math.floor(cy / cs) - 1, nx = Math.ceil(W / cs) + 2, ny = Math.ceil(H / cs) + 2;
   for (let i = 0; i <= nx; i++) for (let j = 0; j <= ny; j++) {
     const gx = ix0 + i, gy = iy0 + j, h = hash(gx, gy);
-    if (h > 0.17) continue;
-    const spr = DECOR[Math.floor(hash(gx + 3, gy - 9) * DECOR.length)];
+    if (h > B.density) continue;
+    const spr = B.decor[Math.floor(hash(gx + 3, gy - 9) * B.decor.length)];
     const px = gx * cs + hash(gy + 7, gx - 3) * cs - cx, py = gy * cs + hash(gx + 11, gy + 5) * cs - cy;
     ctx.drawImage(spr, px - spr.w / 2, py - spr.h / 2, spr.w, spr.h);
   }
+  ctx.globalAlpha = 1;
+}
+
+// Земля с плавной сменой местности
+function drawWorld(cx, cy, cur, prev, k) {
+  if (prev !== null && prev !== undefined && k < 1) { drawGround(cx, cy, BIOMES[prev], 1); drawGround(cx, cy, BIOMES[cur], k * k * (3 - 2 * k)); }
+  else drawGround(cx, cy, BIOMES[cur], 1);
+}
+function drawTint(cur, prev, k) {
+  const one = (B, a) => { if (B.tint && a > 0) { ctx.globalAlpha = a; ctx.fillStyle = B.tint; ctx.fillRect(0, 0, W, H); } };
+  if (prev !== null && prev !== undefined && k < 1) { one(BIOMES[prev], 1 - k); one(BIOMES[cur], k); } else one(BIOMES[cur], 1);
+  ctx.globalAlpha = 1;
+}
+
+/* --- частицы в воздухе: светлячки, туман, песок, снег, искры --- */
+const air = [];
+let airCam = null, airLast = 0;
+function spawnAir(type, anywhere) {
+  const q = { type, x: Math.random() * W, y: Math.random() * H, ph: Math.random() * TAU, life: 4 + Math.random() * 6 };
+  if (!anywhere) {
+    if (type === 'snow') q.y = -10;
+    else if (type === 'embers') q.y = H + 10;
+    else if (type === 'dust') q.x = -20;
+  }
+  if (type === 'fog') { q.r = 70 + Math.random() * 90; q.vx = 6 + Math.random() * 10; q.vy = Math.random() * 4 - 2; q.life = 8 + Math.random() * 8; }
+  else if (type === 'dust') { q.vx = 130 + Math.random() * 90; q.vy = 10 + Math.random() * 20; q.r = 8 + Math.random() * 12; }
+  else if (type === 'snow') { q.vx = 15 + Math.random() * 25; q.vy = 40 + Math.random() * 40; q.r = 0.9 + Math.random() * 1.8; }
+  else if (type === 'embers') { q.vx = Math.random() * 20 - 10; q.vy = -(30 + Math.random() * 50); q.r = 0.8 + Math.random() * 1.6; }
+  else { q.vx = Math.random() * 16 - 8; q.vy = Math.random() * 16 - 8; q.r = 1.3 + Math.random(); }
+  q.age = 0;
+  return q;
+}
+function drawAir(now, cx, cy, type) {
+  const dt = Math.min(0.05, airLast ? (now - airLast) / 1000 : 0); airLast = now;
+  const N = type === 'fog' ? 14 : type === 'dust' ? 26 : type === 'snow' ? 70 : 40;
+  const dx = airCam ? cx - airCam[0] : 0, dy = airCam ? cy - airCam[1] : 0;
+  airCam = [cx, cy];
+  while (air.length < N) air.push(spawnAir(type, true));
+  if (air.length > N + 20) air.length = N + 20;
+  for (let i = 0; i < air.length; i++) {
+    let q = air[i];
+    q.age += dt; q.life -= dt;
+    q.x += q.vx * dt - dx; q.y += q.vy * dt - dy;
+    if (q.type === 'fireflies') { q.vx += Math.sin(now / 700 + q.ph) * 12 * dt; q.vy += Math.cos(now / 900 + q.ph) * 12 * dt; }
+    if (q.type === 'embers') q.vx += Math.sin(now / 300 + q.ph) * 30 * dt;
+    const m = (q.r || 2) + 30;
+    if (q.life <= 0 || q.x < -m - 60 || q.x > W + m + 60 || q.y < -m - 60 || q.y > H + m + 60 || (q.type !== type && i >= N)) {
+      q = air[i] = spawnAir(type, q.life > 0);
+      continue;
+    }
+    // плавное появление и исчезновение
+    const fade = Math.min(1, q.age / 0.8, Math.max(0, q.life) / 0.8);
+    if (q.type === 'fog') {
+      ctx.globalAlpha = 0.07 * fade;
+      ctx.fillStyle = rg(ctx, q.x, q.y, 0, q.x, q.y, q.r, [[0, 'rgba(170,160,210,1)'], [1, 'rgba(170,160,210,0)']]);
+      ctx.fillRect(q.x - q.r, q.y - q.r, q.r * 2, q.r * 2);
+    } else if (q.type === 'dust') {
+      ctx.globalAlpha = 0.28 * fade; ctx.strokeStyle = '#e8cf9a'; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x - q.r, q.y - q.r * 0.12); ctx.stroke();
+    } else if (q.type === 'snow') {
+      ctx.globalAlpha = 0.85 * fade; ctx.fillStyle = '#f4f8ff';
+      ctx.beginPath(); ctx.arc(q.x + Math.sin(now / 500 + q.ph) * 4, q.y, q.r, 0, TAU); ctx.fill();
+    } else if (q.type === 'embers') {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = (0.6 + 0.4 * Math.sin(now / 90 + q.ph)) * fade; ctx.fillStyle = '#ff8a3a';
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    } else {
+      const tw = 0.5 + 0.5 * Math.sin(now / 400 + q.ph * 3);
+      ctx.globalCompositeOperation = 'lighter';
+      blitGlow(GLOW.green, q.x, q.y, 16, 0.35 * tw * fade);
+      ctx.globalAlpha = 0.9 * tw * fade; ctx.fillStyle = '#e8ffb0';
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, TAU); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 function blitGlow(spr, x, y, size, a) { ctx.globalAlpha = a; ctx.drawImage(spr, x - size / 2, y - size / 2, size, size); }
 function star4(x, y, r) {
@@ -60,14 +140,19 @@ function draw(now) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   if (state === 'menu' || !G) {
-    drawGround(now * 0.02, now * 0.012);
+    // в меню местности сменяют друг друга
+    const per = 9000, i = Math.floor(now / per) % BIOMES.length, k = Math.min(1, (now % per) / 1600);
+    const mx = now * 0.02, my = now * 0.012;
+    drawWorld(mx, my, i, (i + BIOMES.length - 1) % BIOMES.length, k);
+    drawAir(now, mx, my, BIOMES[i].air);
+    drawTint(i, (i + BIOMES.length - 1) % BIOMES.length, k);
     if (vig) ctx.drawImage(vig, 0, 0, W, H);
     return;
   }
   const g = G, p = g.p, sk = g.shake > 0 ? g.shake * 26 : 0;
   const cx = p.x - hx + rnd(-sk, sk), cy = p.y - hy + rnd(-sk, sk), m = 80;
   const inView = (x, y, r) => x > -m - r && x < W + m + r && y > -m - r && y < H + m + r;
-  drawGround(cx, cy);
+  drawWorld(cx, cy, g.biome, g.biomePrev, g.biomeK);
   // выжженная земля от метеоритов
   for (let i = 0; i < g.fx.length; i++) {
     const q = g.fx[i]; if (q.type !== 'decal') continue;
@@ -144,6 +229,15 @@ function draw(now) {
     ctx.beginPath(); ctx.arc(x, y, q.r, 0, TAU); ctx.fill();
     ctx.strokeStyle = 'rgba(255,140,70,.7)'; ctx.lineWidth = 2; ctx.setLineDash([6, 8]);
     ctx.beginPath(); ctx.arc(x, y, q.r * (0.3 + 0.7 * k), 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // предупреждение: бес вот-вот взорвётся
+  for (let i = 0; i < g.enemies.length; i++) {
+    const e = g.enemies[i]; if (!(e.fuse > 0)) continue;
+    const x = e.x - cx, y = e.y - cy, k = 1 - e.fuse / IMP_FUSE;
+    ctx.fillStyle = 'rgba(255,90,40,' + (0.1 + 0.22 * k).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x, y, IMP_R, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,170,90,.9)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.arc(x, y, IMP_R * (0.25 + 0.75 * k), 0, TAU); ctx.stroke(); ctx.setLineDash([]);
   }
   // предупреждение: титан готовит удар по земле
   for (let i = 0; i < g.enemies.length; i++) {
@@ -512,6 +606,8 @@ function draw(now) {
     ctx.fillStyle = q.col; ctx.fillText(q.s, q.x - cx, q.y - cy);
   }
   ctx.globalAlpha = 1;
+  drawAir(now, cx, cy, BIOMES[g.biome].air);
+  drawTint(g.biome, g.biomePrev, g.biomeK);
   if (vig) ctx.drawImage(vig, 0, 0, W, H);
 
   // новый уровень: столб света
