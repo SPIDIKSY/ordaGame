@@ -568,7 +568,7 @@ function updateZoneWeapons(dt) {
         const e = g.enemies[i]; if (e.dead) continue;
         if (Math.hypot(e.x - p.x, e.y - p.y) < R + e.r) { hitEnemy(e, d, 0, 0, true); e.slow = Math.max(e.slow, 0.45); touched++; }
       }
-      // Кот-сан отхлёбывает пиво, когда кого-то задел
+      // Пивной кот отхлёбывает пиво, когда кого-то задел
       g.auraN = (g.auraN || 0) + 1;
       if (touched && g.heroWeapon === 'aura' && g.auraN % 5 === 0) heroAttack();
     }

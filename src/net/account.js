@@ -35,10 +35,6 @@ export async function logout() {
   try { await api.logout(); } catch (_) { /* всё равно выходим */ }
   setToken(''); set({ status: 'guest', user: null });
 }
-export async function changeNick(nick) {
-  const r = await api.setNick(nick);
-  set({ ...ui.get().account, user: r.user });
-}
 export async function refreshMe() {
   try { const r = await api.me(); set({ status: 'user', user: r.user, best: r.best }); } catch (_) { /* не страшно */ }
 }

@@ -382,3 +382,6 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .stat.up b { color: #7dff9a; }
 .stat.down b { color: #ff8a96; }
 @media (max-width: 360px) { .statgrid { grid-template-columns: 1fr; } }
+.profile-nick { display: flex; align-items: center; gap: 10px; font-size: 22px; }
+.profile-nick .ico { width: 26px; height: 26px; color: var(--amber); flex: none; }
+.form label .form-ok, .form label .form-err { font-weight: 500; font-size: 13px; }

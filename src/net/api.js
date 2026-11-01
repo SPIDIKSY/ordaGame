@@ -40,7 +40,7 @@ export const api = {
   login: (login, password) => req('POST', 'login', { login, password }),
   logout: () => req('POST', 'logout'),
   me: () => req('GET', 'me'),
-  setNick: (nick) => req('PATCH', 'me', { nick }),
+  checkNick: (nick) => req('GET', 'check-nick?nick=' + encodeURIComponent(nick)),
   startRun: (hero) => req('POST', 'runs', { hero }),
   beat: (id, r) => req('POST', 'runs/' + encodeURIComponent(id) + '/beat', r),
   finish: (id, r) => req('POST', 'runs/' + encodeURIComponent(id) + '/finish', r),

@@ -154,7 +154,7 @@ export const HEROES = [
   { id: 'rogue', name: 'Разбойница', weapon: 'knife', hp: 80, speed: 175, eff: { crit: 0.1 }, perk: '80 здоровья · самая быстрая · +10% шанса крита' },
   { id: 'druid', name: 'Друид', weapon: 'puddle', hp: 110, speed: 150, eff: { regen: 0.8, dur: 0.2 }, perk: '110 здоровья · +0,8 здоровья в секунду · яд держится дольше' },
   { id: 'necro', name: 'Некромант', weapon: 'wisp', hp: 90, speed: 145, eff: { amount: 1, dmg: -0.1 }, perk: '90 здоровья · +1 снаряд ко всему оружию · −10% урона' },
-  { id: 'cat', name: 'Пивной Кот-сан', short: 'Кот-сан', weapon: 'aura', hp: 120, speed: 145, eff: { area: 0.15, regen: 0.5 }, perk: '120 здоровья · +15% площади · пиво лечит: +0,5 здоровья в секунду' }
+  { id: 'cat', name: 'Пивной кот', weapon: 'aura', hp: 120, speed: 145, eff: { area: 0.15, regen: 0.5 }, perk: '120 здоровья · +15% площади · пиво лечит: +0,5 здоровья в секунду' }
 ];
 export const WDEF = {}, SDEF = {}, RDEF = {}, HDEF = {};
 WEAPONS.forEach((w) => { WDEF[w.id] = w; });

@@ -325,7 +325,7 @@ function bodyNecro(x, f, walk) {
   x.fillStyle = '#5a3a8a'; x.fill(); x.strokeStyle = '#05030a'; x.lineWidth = 0.9; x.stroke();
 }
 
-// Пивной Кот-сан — рыжий кот с чёлкой, соломенная шляпа-конус, синее кимоно, хвост
+// Пивной кот — рыжий кот с чёлкой, соломенная шляпа-конус, синее кимоно, хвост
 const FUR0 = '#f0b06a', FUR1 = '#c27a3a', FUR_LINE = '#5a3214', CREAM = '#fbe6c8';
 function bodyCat(x, f, walk) {
   const { st, bob } = walkOf(f, walk);
