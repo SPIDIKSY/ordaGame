@@ -10,6 +10,7 @@ import { parseReport, checkReport, scoreOf } from './anticheat.js';
 
 export const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat'];
 const SESSION_DAYS = 30;
+const GUEST_CLAIM_MS = 30 * 60000; // сколько гость может «забрать» забег после смерти
 const LOGIN_RE = /^[a-zA-Z0-9_]{3,20}$/;
 const NICK_RE = /^[\p{L}\p{N}_\- ]{3,16}$/u;
 
@@ -64,6 +65,17 @@ export function createHandler({ kv, now = () => Date.now() }) {
     return u ? { user: u.value, tokenKey: 'sess/' + sha(token) } : null;
   }
 
+  // Владелец забега: аккаунт (по токену входа) или гость (по секрету забега в заголовке x-run-token)
+  async function runOwner(req) {
+    const a = await auth(req);
+    if (a) return { user: a.user, key: a.user.id };
+    const rt = req.headers.get('x-run-token') || '';
+    if (!rt || rt.length > 100) return null;
+    const g = sha(rt);
+    return { guest: g, key: 'g' + g.slice(0, 24) };
+  }
+  const owns = (o, run) => (o.user ? run.user === o.user.id : !run.user && run.guest === o.guest);
+
   /* ---------- лидерборд: один документ, обновляется «если не изменился» ---------- */
   const better = (a, b) => !b || a.time > b.time || (a.time === b.time && (a.kills > b.kills || (a.kills === b.kills && a.score > b.score)));
   async function saveBest(user, run) {
@@ -89,6 +101,12 @@ export function createHandler({ kv, now = () => Date.now() }) {
     }
     rows.sort((a, b) => b.time - a.time || b.kills - a.kills || b.score - a.score || a.at - b.at);
     return rows.map((r, i) => ({ place: i + 1, ...r }));
+  }
+  async function placeAfter(user, run) {
+    const board = await saveBest(user, run);
+    const place = rowsOf(board, null).findIndex((x) => x.userId === user.id) + 1;
+    const heroPlace = rowsOf(board, run.hero).findIndex((x) => x.userId === user.id) + 1;
+    return { place: place || null, heroPlace: heroPlace || null };
   }
   async function readBoard() { const b = await kv.get('board'); return b ? b.value : { users: {} }; }
 
@@ -152,26 +170,36 @@ export function createHandler({ kv, now = () => Date.now() }) {
     // Сменить ник нельзя — он выбирается один раз при регистрации
     'PATCH me': async () => json(403, { error: 'Ник нельзя изменить после регистрации' }),
 
-    'POST runs': async (req, url, body) => {
+    // Новый забег. Можно и гостем: тогда вместо входа выдаётся секрет забега (runToken),
+    // а после смерти гость может зарегистрироваться и «забрать» этот проверенный забег себе
+    'POST runs': async (req, url, body, ip) => {
       const a = await auth(req);
-      if (!a) return json(401, { error: 'Нужно войти в аккаунт' });
-      if (await limited('run:' + a.user.id, 30, 600000)) return json(429, { error: 'Слишком часто' });
       const hero = String(body.hero || '');
       if (!HEROES.includes(hero)) return json(400, { error: 'Неизвестный герой' });
       const id = randomBytes(12).toString('base64url'), t = now();
+      const run = { id, user: null, guest: null, hero, status: 'active', started_at: t, last_beat: t, beats: 0, last_t: 0, last_kills: 0, last_level: 1 };
+      let runToken = null, key;
+      if (a) {
+        if (await limited('run:' + a.user.id, 30, 600000)) return json(429, { error: 'Слишком часто' });
+        run.user = a.user.id; key = a.user.id;
+      } else {
+        if (await limited('grun:' + ip, 40, 600000)) return json(429, { error: 'Слишком часто' });
+        runToken = randomBytes(24).toString('base64url');
+        run.guest = sha(runToken); key = 'g' + run.guest.slice(0, 24);
+      }
       // новый забег отменяет предыдущий незаконченный
-      await kv.put('active/' + a.user.id, { runId: id });
-      await kv.put('run/' + id, { id, user: a.user.id, hero, status: 'active', started_at: t, last_beat: t, beats: 0, last_t: 0, last_kills: 0, last_level: 1 });
-      return json(200, { runId: id });
+      await kv.put('active/' + key, { runId: id });
+      await kv.put('run/' + id, run);
+      return json(200, runToken ? { runId: id, runToken } : { runId: id });
     },
 
     'POST beat': async (req, url, body, ip, runId) => {
-      const a = await auth(req);
-      if (!a) return json(401, { error: 'Нужно войти в аккаунт' });
+      const o = await runOwner(req);
+      if (!o) return json(401, { error: 'Нужно войти в аккаунт' });
       const cur = await kv.get('run/' + runId);
       const run = cur && cur.value;
-      if (!run || run.user !== a.user.id || run.status !== 'active') return json(404, { error: 'Забег не найден' });
-      const act = await kv.get('active/' + a.user.id);
+      if (!run || !owns(o, run) || run.status !== 'active') return json(404, { error: 'Забег не найден' });
+      const act = await kv.get('active/' + o.key);
       if (!act || act.value.runId !== runId) return json(404, { error: 'Забег уже не активен' });
       const r = parseReport(body);
       if (!r) return json(400, { error: 'Плохие данные' });
@@ -182,23 +210,35 @@ export function createHandler({ kv, now = () => Date.now() }) {
     },
 
     'POST finish': async (req, url, body, ip, runId) => {
-      const a = await auth(req);
-      if (!a) return json(401, { error: 'Нужно войти в аккаунт' });
+      const o = await runOwner(req);
+      if (!o) return json(401, { error: 'Нужно войти в аккаунт' });
       const cur = await kv.get('run/' + runId);
       const run = cur && cur.value;
-      if (!run || run.user !== a.user.id || run.status !== 'active') return json(404, { error: 'Забег не найден или уже засчитан' });
+      if (!run || !owns(o, run) || run.status !== 'active') return json(404, { error: 'Забег не найден или уже засчитан' });
       const r = parseReport(body);
       if (!r) return json(400, { error: 'Плохие данные' });
       const t = now(), why = checkReport(run, t, r, true);
       if (why) { await kv.put('run/' + runId, { ...run, status: 'rejected', reason: why, finished_at: t }); return json(422, { error: 'Забег не засчитан: ' + why }); }
       // засчитать один забег дважды нельзя: запись проходит, только если забег не менялся
-      const done = { ...run, status: 'ok', finished_at: t, time: r.time, kills: r.kills, level: r.level, bosses: r.bosses };
+      const done = { ...run, status: o.user ? 'ok' : 'guest-ok', finished_at: t, time: r.time, kills: r.kills, level: r.level, bosses: r.bosses };
       done.score = scoreOf(done);
       if (!(await kv.put('run/' + runId, done, { ifMatch: cur.etag }))) return json(404, { error: 'Забег уже засчитан' });
-      const board = await saveBest(a.user, done);
-      const all = rowsOf(board, null), byHero = rowsOf(board, run.hero);
-      const place = all.findIndex((x) => x.userId === a.user.id) + 1, heroPlace = byHero.findIndex((x) => x.userId === a.user.id) + 1;
-      return json(200, { ok: true, score: done.score, place: place || null, heroPlace: heroPlace || null });
+      if (!o.user) return json(200, { ok: true, guest: true, score: done.score, claimUntil: t + GUEST_CLAIM_MS });
+      return json(200, { ok: true, score: done.score, ...(await placeAfter(o.user, done)) });
+    },
+
+    // Гость зарегистрировался или вошёл после смерти — переносим проверенный забег в его аккаунт
+    'POST claim': async (req, url, body, ip, runId) => {
+      const a = await auth(req);
+      if (!a) return json(401, { error: 'Нужно войти в аккаунт' });
+      const rt = req.headers.get('x-run-token') || '';
+      const cur = await kv.get('run/' + runId);
+      const run = cur && cur.value;
+      if (!run || !rt || run.status !== 'guest-ok' || run.guest !== sha(rt)) return json(404, { error: 'Забег не найден или уже засчитан' });
+      if (now() - run.finished_at > GUEST_CLAIM_MS) return json(410, { error: 'Прошло больше 30 минут — этот забег уже не засчитать' });
+      const done = { ...run, status: 'ok', user: a.user.id, guest: null, claimed_at: now() };
+      if (!(await kv.put('run/' + runId, done, { ifMatch: cur.etag }))) return json(404, { error: 'Забег уже засчитан' });
+      return json(200, { ok: true, score: done.score, ...(await placeAfter(a.user, done)) });
     },
 
     'GET leaderboard': async (req, url) => {

@@ -26,9 +26,9 @@ async function makeKvs() {
 function setup(kv) {
   let clock = 1_000_000_000_000;
   const handle = createHandler({ kv, now: () => clock });
-  const call = async (method, path, body, token) => {
+  const call = async (method, path, body, token, runToken) => {
     const res = await handle(new Request('http://x/api/' + path, {
-      method, headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) },
+      method, headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}), ...(runToken ? { 'x-run-token': runToken } : {}) },
       body: body ? JSON.stringify(body) : undefined
     }), '1.2.3.4');
     return { status: res.status, body: await res.json() };
@@ -121,5 +121,46 @@ for (const [name, mk] of kvs.list) {
     const rows = (await s.call('GET', 'leaderboard')).body.rows;
     assert.equal(rows.length, 1);
     assert.equal(rows[0].time, 19);
+  });
+}
+
+for (const [name, mk] of kvs.list) {
+  test(name + ': гость умер, зарегистрировался и забрал свой забег', async () => {
+    const s = setup(mk());
+    const start = await s.call('POST', 'runs', { hero: 'cat' });
+    assert.equal(start.status, 200);
+    const { runId, runToken } = start.body;
+    assert.ok(runToken, 'гостю выдаётся секрет забега');
+    const rep = (t) => ({ time: t, kills: t * 2, level: 1 + Math.floor(t / 20), bosses: 0 });
+    for (let t = 15; t <= 90; t += 15) { s.tick(15); assert.equal((await s.call('POST', 'runs/' + runId + '/beat', rep(t), null, runToken)).status, 200); }
+    // чужой секрет не подходит
+    assert.equal((await s.call('POST', 'runs/' + runId + '/beat', rep(91), null, 'wrong')).status, 404);
+    s.tick(5);
+    const fin = await s.call('POST', 'runs/' + runId + '/finish', rep(95), null, runToken);
+    assert.equal(fin.status, 200, JSON.stringify(fin.body));
+    assert.equal(fin.body.guest, true);
+    assert.equal((await s.call('GET', 'leaderboard')).body.rows.length, 0, 'гость сам в лидерборд не попадает');
+    const tok = (await s.call('POST', 'register', { login: 'newbie', password: '123456', nick: 'Новичок' })).body.token;
+    assert.equal((await s.call('POST', 'runs/' + runId + '/claim', null, tok, 'wrong')).status, 404);
+    const cl = await s.call('POST', 'runs/' + runId + '/claim', null, tok, runToken);
+    assert.equal(cl.status, 200, JSON.stringify(cl.body));
+    assert.equal(cl.body.place, 1);
+    const rows = (await s.call('GET', 'leaderboard')).body.rows;
+    assert.equal(rows[0].nick, 'Новичок');
+    assert.equal(rows[0].time, 95);
+    assert.equal((await s.call('POST', 'runs/' + runId + '/claim', null, tok, runToken)).status, 404, 'второй раз забрать нельзя');
+  });
+
+  test(name + ': гость — читы и просроченный забег не проходят', async () => {
+    const s = setup(mk());
+    let r = (await s.call('POST', 'runs', { hero: 'mage' })).body;
+    s.tick(10);
+    assert.equal((await s.call('POST', 'runs/' + r.runId + '/finish', { time: 900, kills: 3000, level: 40, bosses: 6 }, null, r.runToken)).status, 422);
+    r = (await s.call('POST', 'runs', { hero: 'mage' })).body;
+    s.tick(20);
+    assert.equal((await s.call('POST', 'runs/' + r.runId + '/finish', { time: 19, kills: 30, level: 2, bosses: 0 }, null, r.runToken)).status, 200);
+    const tok = (await s.call('POST', 'register', { login: 'late', password: '123456' })).body.token;
+    s.tick(31 * 60);
+    assert.equal((await s.call('POST', 'runs/' + r.runId + '/claim', null, tok, r.runToken)).status, 410);
   });
 }
