@@ -89,7 +89,7 @@ export default function StartScreen({ heroId, best, account }) {
         <div className="heroes">
           {HEROES.map((q) => (
             <button key={q.id} type="button" className={'hcard' + (q.id === heroId ? ' sel' : '')} aria-pressed={q.id === heroId} onClick={() => game.selectHero(q.id)}>
-              <img src={P[q.id]} alt="" />{q.name}
+              <img src={P[q.id]} alt="" />{q.short || q.name}
             </button>
           ))}
         </div>

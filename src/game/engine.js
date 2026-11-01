@@ -563,10 +563,14 @@ function updateZoneWeapons(dt) {
       g.wt.aura = 0.35;
       addFx({ type: 'pulse', life: 0.5, T: 0.5 });
       const R = auraR(), d = p.dmg * (0.3 + 0.15 * g.w.aura);
+      let touched = 0;
       for (let i = 0; i < g.enemies.length; i++) {
         const e = g.enemies[i]; if (e.dead) continue;
-        if (Math.hypot(e.x - p.x, e.y - p.y) < R + e.r) { hitEnemy(e, d, 0, 0, true); e.slow = Math.max(e.slow, 0.45); }
+        if (Math.hypot(e.x - p.x, e.y - p.y) < R + e.r) { hitEnemy(e, d, 0, 0, true); e.slow = Math.max(e.slow, 0.45); touched++; }
       }
+      // Кот-сан отхлёбывает пиво, когда кого-то задел
+      g.auraN = (g.auraN || 0) + 1;
+      if (touched && g.heroWeapon === 'aura' && g.auraN % 5 === 0) heroAttack();
     }
   }
 
@@ -1370,7 +1374,8 @@ if (import.meta.env && import.meta.env.DEV) {
     // если опыта рядом нет — подходим к врагам на расстояние удара
     if (best === 300 * 300) {
       const e = nearest(p.x, p.y, 700);
-      if (e) { const ex = e.x - p.x, ey = e.y - p.y, d = Math.hypot(ex, ey) || 1; if (d > 110) { tx = ex; ty = ey; } }
+      const near = G.heroWeapon === 'aura' ? 60 : 110;
+      if (e) { const ex = e.x - p.x, ey = e.y - p.y, d = Math.hypot(ex, ey) || 1; if (d > near) { tx = ex; ty = ey; } }
     }
     const tl = Math.hypot(tx, ty) || 1;
     let vx = ax + tx / tl * (danger < 1.2 ? 1.2 : 0.3), vy = ay + ty / tl * (danger < 1.2 ? 1.2 : 0.3);

@@ -325,6 +325,108 @@ function bodyNecro(x, f, walk) {
   x.fillStyle = '#5a3a8a'; x.fill(); x.strokeStyle = '#05030a'; x.lineWidth = 0.9; x.stroke();
 }
 
+// Пивной Кот-сан — рыжий кот с чёлкой, соломенная шляпа-конус, синее кимоно, хвост
+const FUR0 = '#f0b06a', FUR1 = '#c27a3a', FUR_LINE = '#5a3214', CREAM = '#fbe6c8';
+function bodyCat(x, f, walk) {
+  const { st, bob } = walkOf(f, walk);
+  x.translate(0, -bob);
+  // полосатый хвост
+  x.lineCap = 'round';
+  const tail = () => { x.beginPath(); x.moveTo(-5, 10); x.bezierCurveTo(-13, 10, -15 - st, 0, -11.5 - st * 1.6, -5.5); x.stroke(); };
+  x.strokeStyle = FUR_LINE; x.lineWidth = 5; tail();
+  x.strokeStyle = FUR0; x.lineWidth = 3.4; tail();
+  x.strokeStyle = FUR1; x.lineWidth = 3.4; x.setLineDash([1.6, 2.6]); tail(); x.setLineDash([]);
+  x.fillStyle = CREAM; circ(x, -11.5 - st * 1.6, -5.5, 1.7);
+  // лапы
+  x.fillStyle = FUR0; x.strokeStyle = FUR_LINE; x.lineWidth = 0.9;
+  for (const px of [-3.5 + st * 3, 4 - st * 3]) {
+    x.beginPath(); x.ellipse(px, 17.4 + bob, 3.6, 2.2, 0, 0, TAU); x.fill(); x.stroke();
+    x.fillStyle = CREAM; ell(x, px + 1.4, 18 + bob, 1.6, 1); x.fillStyle = FUR0;
+  }
+  // кимоно
+  robe(x, '#3a56b0', '#141f4a', '#0a1030');
+  // запах кимоно (белая окантовка буквой V)
+  x.strokeStyle = '#eef2fb'; x.lineWidth = 1.6;
+  x.beginPath(); x.moveTo(-4.2, -6.6); x.lineTo(2.6, 3); x.moveTo(5.6, -6.6); x.lineTo(2.6, 3); x.stroke();
+  x.fillStyle = CREAM; x.beginPath(); x.moveTo(-3.2, -6.8); x.lineTo(4.6, -6.8); x.lineTo(2.6, -1.4); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 0.8;
+  for (const [cx, cy] of [[-5, 8], [5.5, 11], [-1.6, 12.6]]) { x.beginPath(); x.arc(cx, cy, 1.4, 0, TAU); x.stroke(); }
+  // соломенный пояс
+  x.fillStyle = '#d9b058'; x.fillRect(-7.6, 2.6, 15.4, 2.2);
+  x.strokeStyle = '#8a6420'; x.lineWidth = 0.5; for (let i = -7; i < 8; i += 1.4) line(x, i, 2.6, i + 0.8, 4.8);
+  x.fillStyle = '#d9b058'; x.beginPath(); x.moveTo(-4, 4.4); x.lineTo(-5.4, 9); x.lineTo(-3.6, 8.6); x.lineTo(-2.8, 4.6); x.closePath(); x.fill();
+  // голова: рыжая морда
+  x.beginPath(); x.ellipse(1, -11.6, 7.2, 6.6, 0, 0, TAU);
+  x.fillStyle = rg(x, -1, -14, 1, 1, -11.6, 7.6, [[0, '#f8c488'], [1, FUR1]]); x.fill();
+  x.strokeStyle = FUR_LINE; x.lineWidth = 1.1; x.stroke();
+  // полоски на щеке
+  x.strokeStyle = 'rgba(150,80,30,.55)'; x.lineWidth = 0.8;
+  line(x, -5.6, -11.5, -3.4, -11.1); line(x, -5.8, -9.6, -3.6, -9.6);
+  // светлая мордочка
+  x.fillStyle = CREAM; ell(x, 4.4, -8.6, 3.6, 2.6);
+  // чёлка «под горшок»
+  x.beginPath(); x.moveTo(-6, -12.6); x.quadraticCurveTo(-5.6, -18.2, 1, -18.4); x.quadraticCurveTo(7.6, -18.2, 8, -12.6);
+  x.lineTo(6.8, -13.6); x.lineTo(5.6, -12.4); x.lineTo(4.4, -13.6); x.lineTo(3.2, -12.4); x.lineTo(2, -13.6); x.lineTo(0.8, -12.4); x.lineTo(-0.4, -13.6); x.lineTo(-1.6, -12.4); x.lineTo(-2.8, -13.6); x.lineTo(-4, -12.4); x.lineTo(-5, -13.4); x.closePath();
+  x.fillStyle = lg(x, 0, -18, 0, -12, [[0, '#d88a44'], [1, '#a65e24']]); x.fill();
+  x.strokeStyle = FUR_LINE; x.lineWidth = 0.8; x.stroke();
+  // спокойные кошачьи глаза
+  x.fillStyle = '#2a1a10'; ell(x, 2.4, -10.9, 1.25, 1.5); ell(x, 6, -10.9, 1.25, 1.5);
+  x.fillStyle = '#fff'; circ(x, 2.05, -11.5, 0.45); circ(x, 5.65, -11.5, 0.45);
+  x.strokeStyle = FUR_LINE; x.lineWidth = 0.6; line(x, 1.2, -12.3, 3.6, -12.4); line(x, 4.8, -12.4, 7.2, -12.3);
+  // нос, рот-«w», усы
+  x.fillStyle = '#e88a8a'; x.beginPath(); x.moveTo(3.4, -9); x.lineTo(5.2, -9); x.lineTo(4.3, -7.9); x.closePath(); x.fill();
+  x.strokeStyle = '#5a3214'; x.lineWidth = 0.6;
+  x.beginPath(); x.moveTo(4.3, -7.9); x.quadraticCurveTo(3.8, -6.9, 3, -7.3); x.moveTo(4.3, -7.9); x.quadraticCurveTo(4.8, -6.9, 5.6, -7.3); x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 0.45;
+  line(x, 6.6, -8.4, 10.2, -9.2); line(x, 6.6, -7.6, 10.2, -7.4); line(x, 1.6, -8.4, -1.4, -9);
+  // завязки шляпы под подбородком
+  x.strokeStyle = '#8a6420'; x.lineWidth = 0.6;
+  x.beginPath(); x.moveTo(-6.4, -16.4); x.quadraticCurveTo(-4, -6, 1.6, -4.4); x.quadraticCurveTo(6.6, -6, 8.6, -16.4); x.stroke();
+  x.fillStyle = '#d9b058'; circ(x, 1.6, -4.4, 0.8);
+  // соломенная шляпа-конус
+  x.save(); x.translate(0, -1.4); x.scale(1.06, 1);
+  x.beginPath(); x.moveTo(-12.6, -15.6); x.quadraticCurveTo(1, -12.4, 14.6, -15.6); x.lineTo(1, -27.6); x.closePath();
+  x.fillStyle = lg(x, 0, -28, 0, -14, [[0, '#ffe08a'], [0.6, '#e8b85a'], [1, '#b8862e']]); x.fill();
+  x.strokeStyle = '#6b4a14'; x.lineWidth = 1.1; x.stroke();
+  x.strokeStyle = 'rgba(107,74,20,.55)'; x.lineWidth = 0.55;
+  for (const k of [0.3, 0.55, 0.78]) { x.beginPath(); x.moveTo(1 + (-12.6 - 1) * k, -27.6 + 12 * k); x.quadraticCurveTo(1, -27.6 + 15 * k, 1 + 13.6 * k, -27.6 + 12 * k); x.stroke(); }
+  for (const tx of [-7, -3, 5, 9]) line(x, 1, -27.6, tx, -14.6);
+  x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.moveTo(1, -27); x.lineTo(-5, -17.4); x.lineTo(-2, -17.2); x.closePath(); x.fill();
+  x.restore();
+}
+
+// Кружка пива: держим за ручку, кружка справа от лапы
+function drawMug(x, fl, t) {
+  // ручка
+  x.strokeStyle = '#5a3a14'; x.lineWidth = 2.6; x.beginPath(); x.arc(1.6, -4.4, 2.8, Math.PI * 0.5, Math.PI * 1.5); x.stroke();
+  x.strokeStyle = '#d9c6a0'; x.lineWidth = 1.4; x.beginPath(); x.arc(1.6, -4.4, 2.8, Math.PI * 0.5, Math.PI * 1.5); x.stroke();
+  // стекло и пиво
+  rrect(x, 1.4, -10, 8, 10.4, 1.4);
+  x.fillStyle = lg(x, 1.4, 0, 9.4, 0, [[0, '#ffcf4a'], [0.5, '#f0a020'], [1, '#c06a10']]); x.fill();
+  x.strokeStyle = '#5a3a14'; x.lineWidth = 0.9; x.stroke();
+  x.fillStyle = 'rgba(255,255,255,.4)'; x.fillRect(2.6, -8.6, 1.1, 7.4);
+  // пузырьки поднимаются
+  x.fillStyle = 'rgba(255,250,220,.85)';
+  for (let i = 0; i < 4; i++) { const ph = (t * 0.9 + i * 0.27) % 1; circ(x, 4.4 + i * 1.3, -0.8 - ph * 8, 0.45); }
+  // пена
+  x.fillStyle = '#fffaf0'; x.strokeStyle = '#c8b898'; x.lineWidth = 0.5;
+  x.beginPath(); x.moveTo(0.8, -9.6);
+  x.arc(2.6, -10.2, 1.9, Math.PI, 0); x.arc(5.4, -10.9, 2.1, Math.PI, 0); x.arc(8.2, -10.2, 1.8, Math.PI, 0);
+  x.lineTo(10, -9.2); x.lineTo(0.8, -9.2); x.closePath(); x.fill(); x.stroke();
+  x.beginPath(); x.ellipse(9.6, -7.4, 0.9, 1.6, 0, 0, TAU); x.fill();
+  // брызги пены при глотке
+  if (fl > 0.25) {
+    x.fillStyle = 'rgba(255,250,235,' + fl.toFixed(2) + ')';
+    for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i - 2) * 0.45, d = 3 + fl * 5; circ(x, 5.4 + Math.cos(a) * d, -12 + Math.sin(a) * d, 0.8); }
+  }
+  return -11;
+}
+function poseCat(P) {
+  let phi = P.phi0 + Math.sin(P.t * 1.6) * 0.04 + P.st * 0.1, th = 0.05 + Math.sin(P.t * 1.6) * 0.05, fl = 0;
+  if (P.atk >= 0) { const k = Math.sin(Math.PI * Math.min(1, P.atk * 1.1)); phi += 1.25 * k; th -= 1.05 * k; fl = k; }
+  return { phi, th, fl, show: 1 };
+}
+
 /* =====================================================
    ОРУЖИЕ В РУКЕ (рисуется каждый кадр)
    Координаты: рукоять в точке (0,0), оружие смотрит вверх.
@@ -475,7 +577,9 @@ export const HERO_LOOK = {
   druid:  { body: bodyDruid,  ring: '130,255,110', glow: 'green',  sleeve: '#9a7644', sleeveLine: '#2a1a08', cuff: '#4fbf5a', sh: [7, -5], arm: 8.9, phi0: 0.46, hand: SKIN1, handLine: SKIN_LINE, atk: 0.4,
             pose: (P) => poseCaster(P, -0.06), weapon: drawStaffDruid },
   necro:  { body: bodyNecro,  ring: '190,140,255', glow: 'purple', sleeve: '#33244f', sleeveLine: '#05030a', cuff: '#b77cff', sh: [7, -5], arm: 8.9, phi0: 0.46, hand: '#d8d0e8', handLine: '#4a3a66', atk: 0.42,
-            pose: (P) => poseCaster(P, -0.05), weapon: drawStaffNecro }
+            pose: (P) => poseCaster(P, -0.05), weapon: drawStaffNecro },
+  cat:    { body: bodyCat,    ring: '255,200,90',  glow: null,     sleeve: '#3a56b0', sleeveLine: '#0a1030', cuff: '#eef2fb', sh: [7, -5], arm: 8.9, phi0: 0.46, hand: FUR0, handLine: FUR_LINE, atk: 0.7,
+            pose: poseCat, weapon: drawMug }
 };
 
 /**

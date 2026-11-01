@@ -1,6 +1,7 @@
 // SVG-иконки. Рисуются цветом редкости через currentColor.
 const DK = '#0b0f18';
 export const ICON = {
+  seed: '<g transform="rotate(-30 16 16)"><path d="M16 3c5 3 7.5 8.5 7.5 14S20 29 16 29s-7.5-6.5-7.5-12S11 6 16 3z" fill="currentColor"/><path d="M16 6v20M12.6 10c-.8 4-.8 9 .4 14M19.4 10c.8 4 .8 9-.4 14" stroke="' + DK + '" stroke-opacity=".45" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M13.6 7.4c-1.8 2.6-2.4 5-2.4 7.4" stroke="#fff" stroke-opacity=".55" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>',
   trophy: '<path d="M9 3h14v7a7 7 0 0 1-14 0z" fill="currentColor"/><path d="M9 6H4.5c0 4.5 2 7 5.5 7.5M23 6h4.5c0 4.5-2 7-5.5 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><rect x="14" y="16" width="4" height="6" fill="currentColor" fill-opacity=".8"/><rect x="9" y="22" width="14" height="4" rx="1.4" fill="currentColor"/><rect x="7" y="26" width="18" height="3" rx="1.2" fill="currentColor" fill-opacity=".7"/><path d="M12.5 6.5v4" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" stroke-linecap="round"/>',
   user: '<circle cx="16" cy="10.5" r="6.5" fill="currentColor"/><path d="M3.5 29c.8-7 6-11 12.5-11s11.7 4 12.5 11z" fill="currentColor" fill-opacity=".85"/>',
   logout: '<path d="M13 5H6v22h7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 16h15M21 10l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>',

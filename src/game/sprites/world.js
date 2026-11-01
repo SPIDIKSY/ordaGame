@@ -225,3 +225,12 @@ export const BOOMER = mk(32, 32, (x) => {
 // Картинки сундука для экрана открытия
 export const CHEST_URL = mk(40, 44, (x) => { x.translate(0, 4); drawChest(x, false); }, 7).toDataURL();
 export const CHEST_OPEN_URL = mk(40, 44, (x) => { x.translate(0, 4); drawChest(x, true); }, 7).toDataURL();
+
+// Семечко для оружия «Семя»
+export const SEED = mk(10, 14, (x) => {
+  x.beginPath(); x.moveTo(0, -6); x.bezierCurveTo(3.4, -4, 3.6, 2, 2.6, 4.6); x.quadraticCurveTo(0, 6.6, -2.6, 4.6); x.bezierCurveTo(-3.6, 2, -3.4, -4, 0, -6); x.closePath();
+  x.fillStyle = lg(x, -3, 0, 3, 0, [[0, '#3a2a1e'], [0.5, '#1a120c'], [1, '#3a2a1e']]); x.fill();
+  x.strokeStyle = '#0c0806'; x.lineWidth = 0.6; x.stroke();
+  x.strokeStyle = 'rgba(240,230,210,.85)'; x.lineWidth = 0.7;
+  line(x, 0, -4.6, 0, 4.4); line(x, -1.6, -2.6, -1.8, 3.6); line(x, 1.6, -2.6, 1.8, 3.6);
+});

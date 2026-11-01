@@ -212,7 +212,8 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .bb i { display: block; height: 100%; background: linear-gradient(90deg, #b14cff, #ff4a8a); transform-origin: left; box-shadow: 0 0 10px #b14cff; transition: transform .12s; }
 
 /* выбор героя */
-.heroes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 440px; }
+.heroes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 540px; }
+@media (max-width: 560px) { .heroes { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 360px; } .hcard img { max-width: 46px; } }
 .hcard {
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px 7px; min-width: 0;
   border-radius: 14px; background: var(--panel-2); border: 1.5px solid var(--line); color: var(--ink-dim);

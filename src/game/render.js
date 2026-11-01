@@ -4,7 +4,7 @@
    ===================================================== */
 import { TAU, rnd, rg, jag, setGlowScale } from './gfx.js';
 import { SPR } from './sprites/enemies.js';
-import { GLOW, BEAM, GEMS, HEARTSPR, CHEST, PUS, TILE, AXE, KNIFE, FLASK, BOOMER } from './sprites/world.js';
+import { GLOW, BEAM, GEMS, HEARTSPR, CHEST, PUS, TILE, AXE, KNIFE, FLASK, BOOMER, SEED } from './sprites/world.js';
 import { drawHeroArm } from './sprites/heroes.js';
 import { BIOMES } from './sprites/biomes.js';
 import { IMP_R, IMP_FUSE } from './engine.js';
@@ -200,7 +200,7 @@ function draw(now) {
     }
     ctx.globalAlpha = 1;
   }
-  // аура под всем
+  // поле «Семя» под всем
   if (g.w.aura) {
     const R = auraR(), x = p.x - cx, y = p.y - cy;
     ctx.globalCompositeOperation = 'lighter';
@@ -208,12 +208,19 @@ function draw(now) {
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     ctx.strokeStyle = 'rgba(255,224,150,.55)'; ctx.lineWidth = 2; ctx.setLineDash([10, 14]); ctx.lineDashOffset = -now * 0.03;
     ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,232,170,.9)';
-    for (let k = 0; k < 8; k++) {
-      const a = now / 900 + k * TAU / 8;
-      rotT(a, x + Math.cos(a) * R, y + Math.sin(a) * R);
-      ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(3, 0); ctx.lineTo(0, 6); ctx.lineTo(-3, 0); ctx.closePath(); ctx.fill();
+    // семечки кружат по краю и внутри поля
+    for (let k = 0; k < 10; k++) {
+      const a = now / 900 + k * TAU / 10;
+      rotT(a * 3 + k, x + Math.cos(a) * R, y + Math.sin(a) * R * 0.9);
+      ctx.drawImage(SEED, -SEED.w / 2, -SEED.h / 2, SEED.w, SEED.h);
     }
+    for (let k = 0; k < 7; k++) {
+      const a = -now / 1300 + k * TAU / 7, rr = R * (0.45 + 0.15 * Math.sin(now / 700 + k));
+      ctx.globalAlpha = 0.85;
+      rotT(-a * 2 + k, x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.9);
+      ctx.drawImage(SEED, -SEED.w * 0.4, -SEED.h * 0.4, SEED.w * 0.8, SEED.h * 0.8);
+    }
+    ctx.globalAlpha = 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     for (let i = 0; i < g.fx.length; i++) {
       const q = g.fx[i]; if (q.type !== 'pulse') continue;

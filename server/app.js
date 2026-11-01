@@ -6,7 +6,7 @@ import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypt
 import { openDb } from './db.js';
 import { parseReport, checkReport, scoreOf } from './anticheat.js';
 
-const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro'];
+const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat'];
 const SESSION_DAYS = 30;
 const LOGIN_RE = /^[a-zA-Z0-9_]{3,20}$/;
 const NICK_RE = /^[\p{L}\p{N}_\- ]{3,16}$/u;
