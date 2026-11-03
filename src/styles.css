@@ -351,7 +351,18 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 
 /* выбор столбца, по которому упорядочена таблица лидеров */
 .tabs.sorts { margin-top: 6px; }
+.tabs.modes { margin-bottom: 6px; }
+.tabs.modes button { flex: 1 1 0; }
+/* топ героев: имя с полоской доли забегов, под числами — мелкие подписи */
+.board col.c-rec { width: 76px; }
+.board td small { display: block; font-size: 10px; color: var(--ink-dim); font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
+.board.herotop td.who span.hname { display: block; flex: 1 1 auto; }
+.herotop .share { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: rgba(255,255,255,.08); }
+.herotop .share i { display: block; height: 100%; border-radius: 2px; background: var(--amber); }
+.herotop .note { margin: 10px 4px 2px; font-size: 12px; white-space: normal; }
 .tabs.sorts button { flex: 1 1 0; font-size: 13px; }
+/* на узком телефоне три кнопки сортировки и «?» должны влезать в строку */
+@media (max-width: 420px) { .tabs.sorts button:not(.help-btn) { min-width: 0; padding: 0 6px; font-size: 12px; } }
 /* Кружок «?». Селектор не короче, чем у .tabs.sorts button, иначе кнопка
    растягивается наравне с остальными и круг превращается в овал. */
 .tabs.sorts .help-btn {
@@ -407,6 +418,8 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
   .board col.c-n { width: 44px; }
   .board col.c-sc { width: 54px; }
   .board th { font-size: 9px; letter-spacing: .06em; }
+  .board col.c-rec { width: 62px; }
+  .board.herotop td.who span.hname { font-size: 12px; }
 }
 
 .online { margin: 0; font-size: 14px; }
@@ -517,9 +530,18 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .hero-weapon b { display: block; font-size: 14px; }
 .hero-weapon small { display: none; color: var(--ink-dim); font-size: 13px; line-height: 1.35; }
 .hero-card .perk { margin: 0; color: var(--ink-dim); font-size: 12px; line-height: 1.35; }
-/* герои 3×2, имя под портретом: в ряд по 6 длинные имена не помещались */
-.heroes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
-.hcard { gap: 1px; padding: 4px 2px 6px; border-radius: 12px; font-size: 12px; }
+/* героев 7, имя под портретом: первый ряд — 4 карточки, второй — 3 пошире.
+   Сетка из 12 долей: первые четыре занимают по 3 доли, остальные по 4 */
+.heroes { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.hcard { grid-column: span 3; gap: 1px; padding: 4px 2px 6px; border-radius: 12px; font-size: 12px; }
+.hcard:nth-child(n+5) { grid-column: span 4; }
+.hcard span { font-size: 12px; }
+/* Имя подстраивается под ширину сетки героев: в ряду из четырёх на узком телефоне
+   или в узкой колонке планшета «Разбойница» иначе обрезается. cqi — 1% ширины сетки */
+@supports (container-type: inline-size) {
+  .heroes { container-type: inline-size; }
+  .hcard span { font-size: clamp(10px, 3.25cqi, 13px); }
+}
 .hcard span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hcard .heropic { filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
 .hcard.sel { transform: none; }
@@ -528,7 +550,8 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .menu-actions #startBtn { width: 100%; margin: 0; }
 .menu-actions .btn.ghost { margin: 0; min-height: 0; height: 100%; padding: 0 16px; }
 .menu-foot { margin: -4px 0 0; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
-@media (min-width: 760px) {
+/* широкий экран — и телефон, лежащий на боку: меню в две колонки */
+@media (min-width: 760px), (min-width: 600px) and (max-height: 520px) and (orientation: landscape) {
   #start { gap: 20px; }
   .menu { max-width: 880px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 1fr auto auto 1fr; column-gap: 36px; row-gap: 16px; }
   .menu-hero { grid-row: 1 / 5; margin-top: 0; grid-template-columns: 1fr; justify-items: center; align-self: center; gap: 4px; }
@@ -538,7 +561,7 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
   .hero-weapon { grid-template-columns: 46px 1fr; }
   .hero-weapon .slot { width: 46px; height: 46px; padding: 9px; border-radius: 12px; }
   .hero-weapon small { display: block; }
-  .heroes { grid-row: 2; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .heroes { grid-row: 2; gap: 8px; }
   .hcard { padding: 6px 2px 7px; font-size: 13px; }
   .menu-actions { grid-row: 3; margin-top: 0; }
   .menu-foot { grid-row: 4; align-self: start; margin-top: 0; }
@@ -585,3 +608,16 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 /* урон оружия: на карточке героя и под значком в паузе */
 .hero-weapon .wdmg { font-style: normal; font-weight: 600; font-size: 12px; color: var(--amber); margin-left: 6px; white-space: nowrap; }
 .gear-dmg { font-size: 10px; font-weight: 600; color: var(--amber); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* телефон лёжа: экран низкий — портрет героя ставим рядом с карточкой, чтобы меню влезло без прокрутки */
+@media (min-width: 600px) and (max-height: 520px) and (orientation: landscape) {
+  #start { gap: 8px; }
+  .menu { row-gap: 10px; }
+  .menu-hero { grid-template-columns: 104px minmax(0, 1fr); justify-items: stretch; align-items: center; gap: 6px; }
+  .hero-stage { width: 104px; height: 120px; margin: 0; }
+  .hero-card { padding: 10px 12px; gap: 6px; }
+  .hero-card h2 { font-size: 20px; }
+  .hero-weapon { grid-template-columns: 34px 1fr; }
+  .hero-weapon .slot { width: 34px; height: 34px; padding: 6px; border-radius: 10px; }
+  .hero-weapon small { display: none; }
+}

@@ -7,7 +7,7 @@
    вместе с тем, что в этот момент было на экране, — чтобы
    было видно не только «тормозит», но и от чего.
    ===================================================== */
-import { settings, onSettings } from './settings.js';
+import { settings, onSettings, renderInfo } from './settings.js';
 
 const HITCH = 50;    // кадр дольше этого считаем рывком, мс
 const LONG = 33;     // кадр дольше этого уже заметен глазу, мс
@@ -49,6 +49,7 @@ export function perfStats() {
     работа: r1(med(works, k)),
     мир: r1(med(updMs, k)),
     рисование: r1(med(drwMs, k)),
+    движок: renderInfo.active === 'gl' ? 'WebGL · пачек ' + renderInfo.gl.frameStats.draws + ' · вершин ' + renderInfo.gl.frameStats.verts : 'обычный',
     // три самых тяжёлых слоя, по убыванию
     слои: LAYERS.map((name, i) => ({ name, ms: layerSum[i] / k }))
       .sort((x, y) => y.ms - x.ms).slice(0, 3)
@@ -70,7 +71,8 @@ function paint() {
     + 'p95 ' + s.p95 + ' · худший ' + s.худший + '\n'
     + 'длинных ' + s.длинных + '/' + s.кадров + ' · рывков ' + s.рывков + '\n'
     + 'работа ' + s.работа + ' мс (мир ' + s.мир + ' · рисование ' + s.рисование + ')\n'
-    + 'слои: ' + s.слои;
+    + 'слои: ' + s.слои + '\n'
+    + 'движок: ' + s.движок;
 }
 
 /**

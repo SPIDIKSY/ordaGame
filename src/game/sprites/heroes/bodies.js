@@ -344,3 +344,69 @@ export function bodyCat(x, f, walk) {
   x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.moveTo(1, -27); x.lineTo(-5, -17.4); x.lineTo(-2, -17.2); x.closePath(); x.fill();
   x.restore();
 }
+
+// Негжер — вампир: бледное лицо, красные глаза, высокий стоячий воротник, тёмно-бордовый плащ
+export function bodyVampire(x, f, walk) {
+  const { st, bob } = walkOf(f, walk);
+  x.translate(0, -bob);
+  // плащ за спиной: длинный, с острыми зубцами по краю, как крыло летучей мыши
+  x.beginPath(); x.moveTo(-4, -8); x.quadraticCurveTo(-15 - st * 1.6, 1, -14 + st, 15.5);
+  x.quadraticCurveTo(-11.8 + st, 13.4, -10.2 + st * 0.7, 16.6); x.quadraticCurveTo(-8.2 + st * 0.5, 13.8, -5.8, 16.8);
+  x.quadraticCurveTo(-3.8, 14, -1.4, 16.2); x.lineTo(3, -6); x.closePath();
+  x.fillStyle = lg(x, 0, -8, 0, 16, [[0, '#6a1426'], [1, '#1a0408']]); x.fill();
+  x.strokeStyle = '#0a0204'; x.lineWidth = 1.1; x.stroke();
+  // красная подкладка у края плаща
+  x.strokeStyle = 'rgba(210,40,72,.6)'; x.lineWidth = 0.9;
+  x.beginPath(); x.moveTo(-12.8 + st, 13); x.quadraticCurveTo(-13.6 - st, 2, -5, -6.6); x.stroke();
+  // высокий стоячий воротник за головой, красный изнутри
+  x.beginPath(); x.moveTo(-4.8, -6.6); x.lineTo(-10, -20); x.quadraticCurveTo(-5.4, -15.6, -1.4, -8.2); x.closePath();
+  x.fillStyle = lg(x, -10, -20, -3, -7, [[0, '#d8344f'], [1, '#5a0e1e']]); x.fill();
+  x.strokeStyle = '#0a0204'; x.lineWidth = 1; x.stroke();
+  boots(x, st, bob, '#1a0a0e');
+  // тёмный камзол
+  robe(x, '#3e1622', '#12060a', '#0a0204');
+  // жилет с золотыми пуговицами
+  x.fillStyle = '#5e1626'; x.beginPath(); x.moveTo(-1.6, -6.6); x.lineTo(4.8, -6.6); x.lineTo(3.6, 6.2); x.lineTo(-0.4, 6.2); x.closePath(); x.fill();
+  x.fillStyle = '#e8c070'; circ(x, 1.9, -3, 0.6); circ(x, 1.7, 0.4, 0.6); circ(x, 1.5, 3.6, 0.6);
+  // кайма по низу и пояс
+  x.strokeStyle = '#9a2038'; x.lineWidth = 1.1;
+  x.beginPath(); x.moveTo(-9.3, 13.6); x.quadraticCurveTo(0, 16.9, 9.3, 13.6); x.stroke();
+  x.fillStyle = '#1a0a10'; x.fillRect(-7.6, 6.4, 15.2, 2.2);
+  x.fillStyle = '#c9a050'; x.fillRect(0.6, 6.1, 2.8, 2.8);
+  // белое жабо под горлом
+  x.fillStyle = '#f2ecef';
+  x.beginPath(); x.moveTo(0.2, -7.2); x.quadraticCurveTo(2.6, -6.6, 5, -7.2); x.quadraticCurveTo(4.6, -4, 2.6, -2.4); x.quadraticCurveTo(0.6, -4.2, 0.2, -7.2); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(120,100,120,.6)'; x.lineWidth = 0.5; x.stroke();
+  // лицо: бледное, с сиреневой тенью
+  face(x, '#f6f3f8', '#c9c0d4', '#5a4a62');
+  x.fillStyle = 'rgba(130,40,90,.28)'; ell(x, 2.7, -11.1, 1.5, 1.1); ell(x, 5.8, -11.1, 1.5, 1.1);
+  // красные глаза светятся
+  glowOn(x, '#ff2a4a', 2.5);
+  x.fillStyle = '#e0102e'; ell(x, 2.7, -11.4, 0.9, 1.25); ell(x, 5.8, -11.4, 0.9, 1.25);
+  glowOff(x);
+  x.fillStyle = '#fff'; circ(x, 2.45, -11.9, 0.34); circ(x, 5.55, -11.9, 0.34);
+  // хищные брови
+  x.strokeStyle = '#140810'; x.lineWidth = 0.85; line(x, 1.4, -13.7, 3.8, -12.9); line(x, 4.8, -12.9, 7.1, -13.8);
+  // ухмылка и клыки
+  x.strokeStyle = '#6a2a3a'; x.lineWidth = 0.6;
+  x.beginPath(); x.moveTo(2.8, -8.7); x.quadraticCurveTo(4.3, -7.9, 6, -8.9); x.stroke();
+  x.fillStyle = '#fff';
+  x.beginPath(); x.moveTo(3.4, -8.45); x.lineTo(3.8, -7.1); x.lineTo(4.2, -8.3); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(5, -8.4); x.lineTo(5.3, -7.2); x.lineTo(5.7, -8.6); x.closePath(); x.fill();
+  // зализанные чёрные волосы с мыском на лбу
+  x.beginPath(); x.moveTo(-5.6, -9.6); x.quadraticCurveTo(-6.8, -19.6, 1.2, -19.4); x.quadraticCurveTo(7.8, -19.2, 7.9, -13.4);
+  x.quadraticCurveTo(6.6, -15.4, 4.6, -15.2); x.lineTo(3.4, -13.2); x.lineTo(2.2, -15.4); x.quadraticCurveTo(-1.4, -15, -3.2, -12.6);
+  x.quadraticCurveTo(-3.8, -10.6, -5.6, -9.6); x.closePath();
+  x.fillStyle = lg(x, -4, -19, 6, -12, [[0, '#2c1a28'], [1, '#08040a']]); x.fill();
+  x.strokeStyle = '#000'; x.lineWidth = 0.8; x.stroke();
+  x.strokeStyle = 'rgba(210,120,160,.45)'; x.lineWidth = 0.6;
+  x.beginPath(); x.moveTo(-3, -17.6); x.quadraticCurveTo(0.6, -18.8, 4.4, -17.6); x.stroke();
+  // острое ухо
+  x.fillStyle = '#ece6ee';
+  x.beginPath(); x.moveTo(-1.4, -12.4); x.lineTo(-3.9, -14.6); x.lineTo(-2.4, -10.4); x.closePath(); x.fill();
+  x.strokeStyle = '#5a4a62'; x.lineWidth = 0.5; x.stroke();
+  // воротник спереди: низкий уголок у шеи, чтобы не заходить на лицо
+  x.beginPath(); x.moveTo(6.6, -7); x.lineTo(8.4, -9); x.quadraticCurveTo(6.6, -8.2, 4.2, -7.4); x.closePath();
+  x.fillStyle = '#a82440'; x.fill();
+  x.strokeStyle = '#2a0610'; x.lineWidth = 0.6; x.stroke();
+}

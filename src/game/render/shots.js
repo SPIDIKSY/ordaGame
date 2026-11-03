@@ -34,6 +34,9 @@ export function drawShots(now) {
         const w = Math.sin(now / 80 + i + k) * 3;
         ctx.beginPath(); ctx.arc(x - s.vx * 0.025 * k - s.vy * 0.01 * w, y - s.vy * 0.025 * k + s.vx * 0.01 * w, 2.4 - k * 0.5, 0, TAU); ctx.fill();
       }
+    } else if (s.kind === 'soul') {
+      // душа: красно-фиолетовое свечение (дымный след рисуется ниже, обычной краской)
+      blitGlow(GLOW.soul, x, y, 30 + Math.sin(now / 55 + i) * 4, 0.9);
     } else {
       // огненный сгусток посоха: хвост-комета и мерцающее ядро
       const sp = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / sp, uy = s.vy / sp, tl = 24 + Math.sin(now / 35 + i) * 4;
@@ -66,6 +69,17 @@ export function drawShots(now) {
       ctx.fillStyle = '#fff6d8'; ctx.beginPath(); ctx.arc(x - 1.5, y - 1.5, 4, 0, TAU); ctx.fill();
     } else if (s.kind === 'wisp') {
       ctx.fillStyle = '#f6eeff'; ctx.beginPath(); ctx.arc(x, y, 3.8, 0, TAU); ctx.fill();
+    } else if (s.kind === 'soul') {
+      // короткий дымный след: тающие клубы позади души, потом её ядро
+      const sp = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / sp, uy = s.vy / sp;
+      for (let k = 3; k >= 1; k--) {
+        const w = Math.sin(now / 90 + i * 1.7 + k) * 2.2;
+        ctx.globalAlpha = 0.42 - k * 0.1; ctx.fillStyle = '#5a1a44';
+        ctx.beginPath(); ctx.arc(x - ux * 5.5 * k - uy * w, y - uy * 5.5 * k + ux * w, 4.4 - k * 0.7, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ff9cc8'; ctx.beginPath(); ctx.arc(x, y, 4.6, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff4fa'; ctx.beginPath(); ctx.arc(x + ux * 1.2, y + uy * 1.2, 2.4, 0, TAU); ctx.fill();
     } else {
       ctx.fillStyle = '#fffbe8'; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, TAU); ctx.fill();
     }

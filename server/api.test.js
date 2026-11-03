@@ -229,4 +229,24 @@ for (const [name, mk] of kvs.list) {
     assert.equal(me.nick, rows[0].nick, 'в аккаунте тот же новый ник');
     assert.equal((await s.call('GET', 'leaderboard')).body.rows[0].time, 19, 'рекорд сохранился');
   });
+
+  test(name + ': топ героев — забеги, время, игроки и лучший рекорд', async () => {
+    const s = setup(mk());
+    const a = (await s.call('POST', 'register', { login: 'hero_a', password: '123456', nick: 'Первый' })).body;
+    const b = (await s.call('POST', 'register', { login: 'hero_b', password: '123456', nick: 'Второй' })).body;
+    assert.equal((await playFair(s, a.token, 'vampire', 60)).status, 200);
+    assert.equal((await playFair(s, b.token, 'vampire', 90)).status, 200);
+    assert.equal((await playFair(s, a.token, 'mage', 30)).status, 200);
+    await s.call('POST', 'runs', { hero: 'cat' });               // гость начал и бросил
+    const r = (await s.call('GET', 'heroes')).body;
+    assert.equal(r.rows.length, 7, 'все герои в списке');
+    assert.equal(r.totalRuns, 4);
+    const v = r.rows[0];
+    assert.equal(v.hero, 'vampire', 'больше всего забегов — первый');
+    assert.equal(v.runs, 2); assert.equal(v.time, 150); assert.equal(v.players, 2);
+    assert.equal(v.best.nick, 'Второй'); assert.equal(v.best.time, 90);
+    assert.equal(Math.round(v.share * 100), 50);
+    const cat = r.rows.find((x) => x.hero === 'cat');
+    assert.equal(cat.runs, 1); assert.equal(cat.time, 0); assert.equal(cat.players, 0); assert.equal(cat.best, null);
+  });
 }

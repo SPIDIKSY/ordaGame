@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { mountGame } from './game/engine.js';
 import { initAccount } from './net/account.js';
 import { ui, useStore } from './game/store.js';
+import { settings, onSettings, renderInfo } from './game/settings.js';
 import Hud from './ui/Hud.jsx';
 import Toast from './ui/Toast.jsx';
 import StartScreen from './ui/StartScreen.jsx';
@@ -16,14 +17,19 @@ export default function App() {
   const appRef = useRef(null);
   const canvasRef = useRef(null);
   const s = useStore(ui);
+  // Холст создаётся заново, когда меняется способ рисования (видеокарта / обычный):
+  // у одного холста может быть только один способ
+  const [rnd, setRnd] = useState(settings.renderer);
+  useEffect(() => onSettings((v, key) => { if (key === 'renderer') { renderInfo.glFailed = false; setRnd(v.renderer); } }), []);
+  const ckey = rnd + ':' + (s.canvasKey || 0);
 
-  // Запускаем игру один раз, когда canvas появился на странице
-  useEffect(() => mountGame(canvasRef.current, appRef.current), []);
+  // Запускаем игру, когда canvas появился на странице (и заново — с новым холстом)
+  useEffect(() => mountGame(canvasRef.current, appRef.current), [ckey]);
   useEffect(() => { initAccount(); }, []);
 
   return (
     <div id="app" ref={appRef}>
-      <canvas id="c" ref={canvasRef} />
+      <canvas key={ckey} id="c" ref={canvasRef} />
 
       {s.screen !== 'menu' && <Hud />}
       {s.screen === 'play' && <Toast toast={s.toast} />}

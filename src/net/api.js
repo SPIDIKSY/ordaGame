@@ -46,5 +46,6 @@ export const api = {
   beat: (id, r, runToken) => req('POST', 'runs/' + encodeURIComponent(id) + '/beat', r, runToken),
   finish: (id, r, runToken) => req('POST', 'runs/' + encodeURIComponent(id) + '/finish', r, runToken),
   claim: (id, runToken) => req('POST', 'runs/' + encodeURIComponent(id) + '/claim', null, runToken),
-  leaderboard: (hero, sort) => req('GET', 'leaderboard?limit=100' + (hero ? '&hero=' + hero : '') + (sort ? '&sort=' + sort : ''))
+  leaderboard: (hero, sort) => req('GET', 'leaderboard?limit=100' + (hero ? '&hero=' + hero : '') + (sort ? '&sort=' + sort : '')),
+  heroes: () => req('GET', 'heroes')
 };

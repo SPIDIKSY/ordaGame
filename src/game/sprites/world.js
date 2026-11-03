@@ -188,6 +188,7 @@ export const tile = document.createElement('canvas');
 })();
 
 GLOW.purple = glowSprite('#b77cff', 20);
+GLOW.soul = glowSprite('#ff3a8a', 22);
 GLOW.poison = glowSprite('#8dff5a', 28);
 export const AXE = mk(36, 36, (x) => {
   x.rotate(-0.55);

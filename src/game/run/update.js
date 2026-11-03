@@ -180,10 +180,10 @@ function moveShots(dt, g, p) {
         if (dl < 20) s.life = 0;
       }
     }
-    else if (s.kind === 'wisp') {
+    else if (s.kind === 'wisp' || s.kind === 'soul') {
       if (!s.tgt || s.tgt.dead || s.hit.indexOf(s.tgt.id) >= 0) {
-        // новая цель — ближайший враг, которого этот огонёк ещё не задел
-        let best = null, bd = 520 * 520;
+        // новая цель — ближайший враг, которого этот огонёк (или душа) ещё не задел
+        let best = null, bd = s.kind === 'soul' ? 380 * 380 : 520 * 520;
         for (let j = 0; j < g.enemies.length; j++) {
           const e = g.enemies[j]; if (e.dead || s.hit.indexOf(e.id) >= 0) continue;
           const d2 = (e.x - s.x) ** 2 + (e.y - s.y) ** 2; if (d2 < bd) { bd = d2; best = e; }
@@ -193,7 +193,7 @@ function moveShots(dt, g, p) {
       if (s.tgt) {
         const want = Math.atan2(s.tgt.y - s.y, s.tgt.x - s.x), cur = Math.atan2(s.vy, s.vx);
         let da = want - cur; while (da > Math.PI) da -= TAU; while (da < -Math.PI) da += TAU;
-        const na = cur + Math.max(-7 * dt, Math.min(7 * dt, da));
+        const turn = s.kind === 'soul' ? 9 : 7, na = cur + Math.max(-turn * dt, Math.min(turn * dt, da));
         s.vx = Math.cos(na) * s.spd; s.vy = Math.sin(na) * s.spd;
       }
     }
@@ -206,10 +206,13 @@ function moveShots(dt, g, p) {
       if (dx * dx + dy * dy < rr * rr && s.hit.indexOf(e.id) < 0) {
         s.hit.push(e.id);
         if (s.kind === 'fire') { explode(s.x, s.y, s.boom, s.dmg); s.life = 0; break; }
-        addFx({ type: 'hit', x: s.x, y: s.y, life: 0.16, T: 0.16, col: s.kind === 'frost' ? '#d8f6ff' : s.kind === 'wisp' ? '#e2c9ff' : '#ffe2a0' });
+        addFx({ type: 'hit', x: s.x, y: s.y, life: 0.16, T: 0.16, col: s.kind === 'frost' ? '#d8f6ff' : s.kind === 'wisp' ? '#e2c9ff' : s.kind === 'soul' ? '#ffb0d4' : '#ffe2a0' });
         const k = 90 / (1 + e.r / 14), l = Math.hypot(s.vx, s.vy) || 1;
         if (s.kind === 'frost') { e.slow = 1.6; burst(s.x, s.y, '#d8f6ff', 3, 90); }
+        // убийство душой Негжер чаще превращает в кражу жизни — помечаем, чем бьём
+        g.bySoul = s.kind === 'soul';
         hitEnemy(e, s.dmg, s.vx / l * k, s.vy / l * k);
+        g.bySoul = false;
         if (s.pierce-- <= 0) { s.life = 0; break; }
       }
     }

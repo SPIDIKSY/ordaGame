@@ -12,8 +12,55 @@ const SORTS = [
   { id: 'score', name: 'По очкам' }
 ];
 
-// Таблица лидеров: лучший забег каждого игрока
+// Топ героев: за кого сколько играют
+function HeroTop() {
+  const [data, setData] = useState({ loading: true, rows: [], err: '' });
+  useEffect(() => {
+    let alive = true;
+    api.heroes().then((r) => { if (alive) setData({ loading: false, rows: r.rows, err: '' }); })
+      .catch((e) => { if (alive) setData({ loading: false, rows: [], err: e.message }); });
+    return () => { alive = false; };
+  }, []);
+  const top = Math.max(1, ...data.rows.map((r) => r.runs));
+  const hours = (sec) => (sec >= 3600 ? (Math.round(sec / 360) / 10).toString().replace('.', ',') + ' ч' : Math.round(sec / 60) + ' мин');
+  return (
+    <div className="board herotop">
+      {data.loading && <p className="muted">Загрузка…</p>}
+      {data.err && <p className="form-err">{data.err}</p>}
+      {!!data.rows.length && (
+        <table>
+          <colgroup><col className="c-pl" /><col /><col className="c-n" /><col className="c-n" /><col className="c-rec" /></colgroup>
+          <thead><tr><th>#</th><th>Герой</th>
+            <th className="by" title="Сколько забегов начато за этого героя">Забеги</th>
+            <th title="Сколько игроков с аккаунтом есть в рекордах за этого героя">Игроки</th>
+            <th title="Лучшее время за этого героя">Рекорд</th>
+          </tr></thead>
+          <tbody>
+            {data.rows.map((r) => (
+              <tr key={r.hero}>
+                <td className={'pl p' + Math.min(r.place, 4)}>{r.place}</td>
+                <td className="who"><div>
+                  <HeroPic id={r.hero} w={20} h={27} />
+                  <span className="hname">{HDEF[r.hero] ? HDEF[r.hero].name : r.hero}
+                    <i className="share" title={'Сыграно ' + hours(r.time)}><i style={{ width: (r.runs / top * 100) + '%' }} /></i>
+                  </span>
+                </div></td>
+                <td className="num by">{r.runs}<small>{Math.round(r.share * 100)}%</small></td>
+                <td className="num">{r.players}</td>
+                <td className="num rec">{r.best ? <>{fmt(r.best.time)}<small title={r.best.nick}>{r.best.nick}</small></> : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="muted note">Полоска и процент — доля забегов за этого героя. Забеги считаются с ноября 2026 года, игроки и рекорды — за всё время.</p>
+    </div>
+  );
+}
+
+// Таблица лидеров: лучший забег каждого игрока; вкладка «Топ героев» — за кого сколько играют
 export default function LeaderboardModal({ account, onClose }) {
+  const [mode, setMode] = useState('players');
   const [hero, setHero] = useState('');
   const [sort, setSort] = useState('time');
   const [help, setHelp] = useState(false);
@@ -32,6 +79,11 @@ export default function LeaderboardModal({ account, onClose }) {
 
   return (
     <Modal title="Лидеры" onClose={onClose} wide>
+      <div className="tabs modes">
+        <button type="button" className={mode === 'players' ? 'on' : ''} onClick={() => setMode('players')}>Рекорды игроков</button>
+        <button type="button" className={mode === 'heroes' ? 'on' : ''} onClick={() => setMode('heroes')}>Топ героев</button>
+      </div>
+      {mode === 'heroes' ? <HeroTop /> : <>
       <div className="tabs scroll">
         <button type="button" className={hero === '' ? 'on' : ''} onClick={() => setHero('')}>Все</button>
         {HEROES.map((h) => (
@@ -86,6 +138,7 @@ export default function LeaderboardModal({ account, onClose }) {
           </table>
         )}
       </div>
+      </>}
     </Modal>
   );
 }

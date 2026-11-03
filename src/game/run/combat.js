@@ -4,7 +4,7 @@
    опыт, кристаллы, сундуки и временные бонусы.
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
-import { TYPES, xpNeed } from '../data.js';
+import { TYPES, xpNeed, STEAL, soulSteal } from '../data.js';
 import { SPR } from '../sprites/enemies/index.js';
 import { PUS, PU_W, BUFF_TIME } from '../sprites/world.js';
 import { W, H, hx, hy } from '../input.js';
@@ -106,6 +106,24 @@ export function killEnemy(e) {
   }
   // вампиризм лечит не быстрее «копилки», которая медленно наполняется
   if (p.vamp > 0 && g.vampBank > 0) { const h = Math.min(p.vamp, g.vampBank); g.vampBank -= h; p.hp = Math.min(p.maxHp, p.hp + h); }
+  if (p.steal) lifeSteal(e);
+}
+// Кража жизни Негжера: с шансом лечит и навсегда (до конца забега) поднимает максимум здоровья.
+// Душой — чаще, с элиты — втрое чаще, с босса — всегда. Всего можно накрасть не больше STEAL.cap
+function lifeSteal(e) {
+  const g = G, p = g.p, boss = !!e.T.boss;
+  if (!boss) {
+    let ch = g.bySoul ? soulSteal(g.w.soul || 1) : STEAL.chance;
+    if (e.elite) ch *= STEAL.elite;
+    ch *= 1 + Math.max(0, p.luck) * STEAL.luck;
+    if (Math.random() >= ch) return;
+  }
+  const add = Math.max(0, Math.min(boss ? STEAL.bossHp : STEAL.hp, STEAL.cap - g.stolen));
+  p.maxHp += add; g.stolen += add; g.steals = (g.steals || 0) + 1;
+  p.hp = Math.min(p.maxHp, p.hp + STEAL.heal);
+  burst(p.x, p.y - 8, '#ff4a6a', 8, 90);
+  // надпись кладём мимо лимита pop(): в гуще боя цифры урона не должны её вытеснить
+  G.texts.push({ x: p.x, y: p.y - 40, s: add > 0 ? '+' + add + ' макс. здоровья' : '+' + STEAL.heal, col: '#ff4a6a', big: add > 0, outline: 'rgba(60,0,12,.95)', life: 0.6 });
 }
 // Крит считается здесь, для любого оружия
 export function hitEnemy(e, d, kx, ky, quiet, noCrit) {

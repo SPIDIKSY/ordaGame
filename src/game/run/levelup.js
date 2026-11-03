@@ -1,7 +1,7 @@
 /* =====================================================
    НОВЫЙ УРОВЕНЬ: оружие, реликвии, характеристики, переброс
    ===================================================== */
-import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF } from '../data.js';
+import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, wDesc, wLv } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
@@ -42,8 +42,8 @@ function cardParts(c) {
   if (c.type === 'wnew' || c.type === 'wup') {
     const Wd = WDEF[c.id], n = G.w[c.id] || 0;
     icon = Wd.icon; name = Wd.name;
-    if (c.type === 'wnew') { cc = '#ffb02e'; cat = 'Новое оружие'; lv = 'слот ' + (G.wOrder.length + 1) + ' из ' + MAX_WEAPONS; desc = Wd.desc; cls = 'weap'; }
-    else { cc = '#ffd56e'; cat = 'Оружие'; lv = 'ур. ' + (n + 1) + ' из ' + WMAX; desc = Wd.lv[n - 1]; cls = 'wup'; pips = [n + 1, WMAX]; }
+    if (c.type === 'wnew') { cc = '#ffb02e'; cat = 'Новое оружие'; lv = 'слот ' + (G.wOrder.length + 1) + ' из ' + MAX_WEAPONS; desc = wDesc(Wd, G.p.steal); cls = 'weap'; }
+    else { cc = '#ffd56e'; cat = 'Оружие'; lv = 'ур. ' + (n + 1) + ' из ' + WMAX; desc = wLv(Wd, n - 1, G.p.steal); cls = 'wup'; pips = [n + 1, WMAX]; }
   } else if (c.type === 'rnew' || c.type === 'rup') {
     const R = RDEF[c.id], n = G.r[c.id] || 0;
     cc = RCOL; icon = R.icon; name = R.name; desc = (c.type === 'rnew' ? '' : 'Ещё ') + effText(R.eff); hint = effHint(R.eff); cls = 'relic';
