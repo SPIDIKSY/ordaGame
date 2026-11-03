@@ -19,6 +19,9 @@ let visible = fromUrl || settings.showFps;
 onSettings((s) => { visible = fromUrl || s.showFps; if (!visible && box) { box.remove(); box = null; } });
 
 const times = new Float32Array(WINDOW);
+// Сколько игра сама работала внутри кадра (без ожидания экрана): всё, мир и отрисовка
+const works = new Float32Array(WINDOW), updMs = new Float32Array(WINDOW), drwMs = new Float32Array(WINDOW);
+const med = (arr, k) => Array.from(arr.subarray(0, k)).sort((x, y) => x - y)[k >> 1];
 let n = 0, prev = 0, hitches = 0, lastWarn = 0, nextDraw = 0, box = null;
 
 export function perfStats() {
@@ -35,7 +38,10 @@ export function perfStats() {
     p95: r1(a[Math.floor(k * 0.95)]),
     худший: r1(a[k - 1]),
     длинных: a.filter((v) => v > LONG).length,
-    рывков: hitches
+    рывков: hitches,
+    работа: r1(med(works, k)),
+    мир: r1(med(updMs, k)),
+    рисование: r1(med(drwMs, k))
   };
 }
 
@@ -51,7 +57,8 @@ function paint() {
   }
   box.textContent = s.FPS + ' FPS · медиана ' + s.медиана + ' мс\n'
     + 'p95 ' + s.p95 + ' · худший ' + s.худший + '\n'
-    + 'длинных ' + s.длинных + '/' + s.кадров + ' · рывков ' + s.рывков;
+    + 'длинных ' + s.длинных + '/' + s.кадров + ' · рывков ' + s.рывков + '\n'
+    + 'работа ' + s.работа + ' мс (мир ' + s.мир + ' · рисование ' + s.рисование + ')';
 }
 
 /**
@@ -60,10 +67,12 @@ function paint() {
  * а не строка: собирать её каждый кадр ради строки, которая почти всегда
  * не нужна, — ровно тот мусор, из-за которого кадры и дёргаются.
  */
-export function perfFrame(now, info) {
+export function perfFrame(now, info, upd, drw, hud) {
   const dt = prev ? now - prev : 0;
   prev = now;
   if (dt <= 0 || dt > GAP) return;
+  works[n % WINDOW] = upd + drw + hud;
+  updMs[n % WINDOW] = upd; drwMs[n % WINDOW] = drw;
   times[n % WINDOW] = dt;
   n++;
   if (dt > HITCH) {

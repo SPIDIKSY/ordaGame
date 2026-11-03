@@ -39,10 +39,14 @@ function frame(now) {
   }
   const dt = Math.min(0.05, (now - last) / 1000 || 0);
   last = now;
+  const t0 = performance.now();
   if (state === 'play') update(dt);
+  const t1 = performance.now();
   render({ ctx, G, state, W, H, dpr, hx, hy, stick, now, heroSpr });
+  const t2 = performance.now();
   if (G && state !== 'menu') updateHud();
-  perfFrame(now, perfInfo);
+  const t3 = performance.now();
+  perfFrame(now, perfInfo, t1 - t0, t2 - t1, t3 - t2);
 }
 export function mountGame(cv, app) {
   attachScreen(cv, app);
