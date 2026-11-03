@@ -47,14 +47,16 @@ export function scaleEff(eff, m) {
   return o;
 }
 export function addEff(into, eff) { for (const k in eff) into[k] = (into[k] || 0) + eff[k]; return into; }
-export function effText(eff) {
+// Бонусы списком: ['+4 брони', '+12 урона шипами']; effText — то же одной строкой
+export function effParts(eff) {
   return Object.keys(eff).map((k) => {
     const v = eff[k], E = EFX[k], a = Math.abs(v);
     // меньше процента (0,5% крита за уровень) — с десятыми, иначе округление соврёт
     const pv = a < 0.1 && Math.round(a * 1000) % 10 ? String(Math.round(a * 1000) / 10).replace('.', ',') : Math.round(a * 100);
     return (v < 0 ? '−' : '+') + (E.t === 'pct' ? pv + '%' : E.t === 'dec' ? dec(a) : Math.round(a)) + ' ' + E.s;
-  }).join(', ');
+  });
 }
+export const effText = (eff) => effParts(eff).join(', ');
 
 // Предметы из сундуков
 // Предметы из сундуков. Чем выше редкость (r), тем сильнее предмет:
@@ -218,9 +220,8 @@ export const WEAPONS = [
     lv: ['Горит дольше: 2,2 с вместо 1,6 с, урон +26%', 'Жжёт сильнее (+37%)', 'Пятна шире, урон +15%', 'Жжёт сильнее (+13%)', 'Горит дольше: 2,8 с, урон +11%', 'Жжёт сильнее (+10%), пятна шире', 'Пятна шире, урон +9%', 'Горит дольше: 3,4 с, урон +9%', 'Жжёт сильнее. ' + TOP] }
 ];
 
-// Описание оружия — только про само оружие. Строка уровня: у «Души» для героя с кражей жизни
-// (Негжер) в ней ещё и рост шанса кражи — это то, что даёт сам уровень
-export const wDesc = (Wd) => Wd.desc;
+// Строка уровня оружия: у «Души» для героя с кражей жизни (Негжер) в ней ещё и рост
+// шанса кражи — это то, что даёт сам уровень
 export const wLv = (Wd, i, steal) => ((steal && Wd.lvSteal) || Wd.lv)[i];
 
 // Реликвии: готовые наборы бонусов, 5 слотов, 8 уровней. Каждый уровень даёт eff ещё раз
@@ -334,7 +335,7 @@ export function weaponFacts(id, l, p) {
   return out.join(' · ');
 }
 HEROES.forEach((h) => {
-  h.perks = h.eff ? effText(h.eff).split(', ') : [];
+  h.perks = h.eff ? effParts(h.eff) : [];
   if (h.grow) h.perks.unshift('«' + h.grow.name + '»: ' + effText(h.grow.eff) + ' за каждый уровень');
   if (h.steal) h.perks.push('Кража жизни: шанс ' + pc1(STEAL.chance) + ' за убийство (душой ' + pc1(STEAL.soul).replace('%', '') + '–' + pc1(soulSteal(WMAX))
     + ', элита ×' + STEAL.elite + ', босс всегда): +' + STEAL.heal + ' здоровья и навсегда +' + STEAL.hp + ' к максимуму (босс +' + STEAL.bossHp + ')');

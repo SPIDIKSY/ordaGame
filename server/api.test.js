@@ -263,8 +263,17 @@ for (const [name, mk] of kvs.list) {
     };
     const fin = await still('lilita');
     assert.equal(fin.status, 200, JSON.stringify(fin.body));
+    // в общем топе Лилиты нет, на её вкладке — есть
+    assert.equal((await s.call('GET', 'leaderboard')).body.rows.length, 0);
+    assert.equal((await s.call('GET', 'leaderboard?hero=lilita')).body.rows[0].time, 300);
     const bad = await still('mage');
     assert.equal(bad.status, 422);
     assert.match(bad.body.error, /мало убийств/);
+    // бессмертная «подкрученная» Лилита: дольше 15 минут не засчитывается
+    const { body: run } = await s.call('POST', 'runs', { hero: 'lilita' }, a.token);
+    let last = null;
+    for (let t = 15; t <= 960; t += 15) { s.tick(15); last = await s.call('POST', 'runs/' + run.runId + '/beat', { time: t, kills: 0, level: 1, bosses: 0 }, a.token); if (last.status !== 200) break; }
+    assert.equal(last.status, 422);
+    assert.match(last.body.error, /Лилиты/);
   });
 }

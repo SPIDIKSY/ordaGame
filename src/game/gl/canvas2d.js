@@ -178,6 +178,9 @@ export function createGLContext(canvas, opts) {
   let gl = null;
   try { gl = canvas.getContext('webgl2', attrs) || canvas.getContext('webgl', attrs); } catch (_) { gl = null; }
   if (!gl) return null;
+  // без трафарета заливку с дырами (темнота за краем поляны) не нарисовать — тогда обычный холст
+  const got = gl.getContextAttributes && gl.getContextAttributes();
+  if (!got || !got.stencil) return null;
   const r = new GLCanvas(canvas, gl, opts && opts.onFail);
   return r.ok ? r : null;
 }
@@ -417,11 +420,13 @@ class GLCanvas {
     if (this.lost) return;
     const al = this.globalAlpha, st = this.fillStyle;
     if (!(al > 0)) return;
-    // Несколько контуров в одной заливке (например, «экран с круглой дырой» за краем
-    // поляны) — нужна настоящая заливка с дырами по правилу холста
-    let subs = 0;
-    for (const sp of this.path) if (sp.pts.length >= 6) subs++;
-    if (subs > 1) { this.fillHoles(rule === 'evenodd'); return; }
+    // «Экран с круглой дырой» за краем поляны (evenodd) — настоящая заливка с дырами.
+    // Обычные заливки из нескольких отдельных фигур режутся по одной, в общей пачке
+    if (rule === 'evenodd') {
+      let subs = 0;
+      for (const sp of this.path) if (sp.pts.length >= 6) subs++;
+      if (subs > 1) { this.fillHoles(true); return; }
+    }
     this.setBlend(this.globalCompositeOperation);
     const grad = st instanceof Gradient ? st : null, c = grad ? null : parseColor(st);
     if (c && !(c[3] > 0)) return;

@@ -3,7 +3,7 @@
    Снимки снаряжения для HUD, паузы и экрана смерти.
    В React отправляем только то, что поменялось.
    ===================================================== */
-import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt, weaponNums, wDesc, weaponFacts, STEAL } from '../data.js';
+import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, WINFO, fmt, weaponNums, weaponFacts, STEAL } from '../data.js';
 import { PUS } from '../sprites/world.js';
 import { hud } from '../store.js';
 import { G } from './state.js';
@@ -14,7 +14,7 @@ import { G } from './state.js';
 const weaponSlot = (id) => {
   const n = weaponNums(id, G.w[id], G.p);
   return { key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name,
-    sub: n ? 'урон ' + n.hit : '',
+    sub: n ? 'урон ' + (WINFO[id].roll ? '0–' + n.max : n.hit) : '',
     title: WDEF[id].name + ' · ур. ' + G.w[id] + ': ' + weaponFacts(id, G.w[id], G.p) };
 };
 const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] + ': ' + effText(scaleEff(RDEF[id].eff, G.r[id])) + '. ' + effHint(RDEF[id].eff) });
@@ -58,10 +58,11 @@ export function pauseSnapshot() {
   const n100 = (v) => String(Math.round(v * 100));
   const mainId = G.wOrder.includes(G.heroWeapon) ? G.heroWeapon : G.wOrder[0];
   const main = mainId ? weaponNums(mainId, G.w[mainId], p) : null;
-  const mainHit = main ? main.hit : G.wOrder.length ? Math.round(p.dmg) : 0;
+  // у монетки урон случайный: показываем наибольший (диапазон «0–N» — в строке урона)
+  const mainHit = main ? (WINFO[mainId].roll ? main.max : main.hit) : G.wOrder.length ? Math.round(p.dmg) : 0;
   const stats = [
     { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
-    { id: 'dmg', label: 'Урон', value: String(mainHit), tone: tone(p.b.dmg) },
+    { id: 'dmg', label: 'Урон', value: (main && WINFO[mainId].roll ? '0–' : '') + mainHit, tone: tone(p.b.dmg) },
     { id: 'haste', label: 'Скорость атаки', value: n100(1 / p.cdMul), tone: tone(p.b.haste) },
     { id: 'area', label: 'Площадь', value: n100(p.area), tone: tone(p.area - 1) },
     { id: 'amount', label: 'Снаряды', value: '+' + p.amount, tone: tone(p.amount) },

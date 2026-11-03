@@ -10,6 +10,8 @@ import { parseReport, checkReport, beatTooSoon, scoreOf, SCORE } from './antiche
 import { badNick } from './nickfilter.js';
 
 export const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat', 'vampire', 'ludik', 'lilita'];
+// Герои с отдельным топом: в общую таблицу «Все» не попадают
+export const SOLO_HEROES = ['lilita'];
 const SESSION_DAYS = 30;
 const GUEST_CLAIM_MS = 30 * 60000; // сколько гость может «забрать» забег после смерти
 const LOGIN_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -109,7 +111,8 @@ export function createHandler({ kv, now = () => Date.now() }) {
       const board = cur ? cur.value : { users: {} };
       const me = board.users[user.id] || { nick: user.nick, all: null, heroes: {} };
       me.nick = user.nick;
-      if (better(entry, me.all)) me.all = entry;
+      // Лилита играет по своим правилам (не атакует) — её забеги только на её вкладке, не в общем топе
+      if (!SOLO_HEROES.includes(run.hero) && better(entry, me.all)) me.all = entry;
       if (better(entry, me.heroes[run.hero])) me.heroes[run.hero] = entry;
       board.users[user.id] = me;
       const ok = cur ? await kv.put('board', board, { ifMatch: cur.etag }) : await kv.put('board', board, { ifNew: true });
