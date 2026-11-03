@@ -84,50 +84,61 @@ export function effParts(eff) {
 }
 export const effText = (eff) => effParts(eff).join(', ');
 
-// Предметы из сундуков
-// Предметы из сундуков. Чем выше редкость (r), тем сильнее предмет:
-// обычные (0) качают одну характеристику, необычные (1) и редкие (2) — сильнее и по две,
-// эпические (3) — мощные наборы, легендарные (4) дают новую способность (одна на забег).
+// Предметы из сундуков. У каждой базовой характеристики своя линейка по редкости (r):
+// обычный (0) — одна характеристика понемногу, необычный (1) — побольше или две понемногу,
+// редкий (2) — две, эпический (3) — сильный набор, но с минусом, легендарный (4) — новая
+// способность (одна на забег). Предметы складываются, пока характеристика не упрётся в потолок
+// (CAPS): после этого предметы на неё больше не выпадают.
 export const ITEMS = [
-  // --- обычные: одна базовая характеристика ---
-  { id: 'whet',    r: 0, icon: 'sword',     name: 'Точильный камень',  eff: { dmg: 0.06 } },
-  { id: 'meat',    r: 0, icon: 'heart',     name: 'Кусок мяса',        eff: { hp: 12 } },
-  { id: 'boots',   r: 0, icon: 'boot',      name: 'Стоптанные сапоги', eff: { speed: 0.05 } },
-  { id: 'glass',   r: 0, icon: 'hourglass', name: 'Песочные часы',     eff: { haste: 0.05 } },
-  { id: 'plank',   r: 0, icon: 'shield',    name: 'Деревянный щит',    eff: { armor: 1 } },
-  { id: 'sprout',  r: 0, icon: 'sprout',    name: 'Росток',            eff: { regen: 0.3 } },
-  { id: 'magnet',  r: 0, icon: 'magnet',    name: 'Магнитик',          eff: { magnet: 0.2 } },
-  { id: 'notes',   r: 0, icon: 'book',      name: 'Записная книжка',   eff: { xp: 0.06 } },
-  { id: 'scope',   r: 0, icon: 'target',    name: 'Прицел',            eff: { crit: 0.03 } },
-  { id: 'shard',   r: 0, icon: 'crystal',   name: 'Осколок кристалла', eff: { area: 0.06 } },
-  { id: 'lens',    r: 0, icon: 'eye',       name: 'Линза',             eff: { pspeed: 0.08 } },
-  { id: 'candle',  r: 0, icon: 'clock',     name: 'Свеча',             eff: { dur: 0.07 } },
-  { id: 'shoe',    r: 0, icon: 'horseshoe', name: 'Подкова',           eff: { luck: 0.07 } },
-  // --- необычные: сильнее или две характеристики ---
-  { id: 'blade',   r: 1, icon: 'sword',     name: 'Стальной клинок',   eff: { dmg: 0.1 } },
-  { id: 'wolf',    r: 1, icon: 'heart',     name: 'Сердце волка',      eff: { hp: 20, regen: 0.2 } },
-  { id: 'windc',   r: 1, icon: 'cloak',     name: 'Плащ ветра',        eff: { speed: 0.06, dodge: 0.02 } },
-  { id: 'gears',   r: 1, icon: 'hourglass', name: 'Механические часы', eff: { haste: 0.08 } },
-  { id: 'mail',    r: 1, icon: 'shield',    name: 'Кольчуга',          eff: { armor: 2 } },
-  { id: 'thorns',  r: 1, icon: 'spikes',    name: 'Колючий доспех',    eff: { thorns: 6, armor: 1 } },
-  { id: 'gaunt',   r: 1, icon: 'glove',     name: 'Перчатка силы',     eff: { critDmg: 0.2 } },
-  { id: 'compass', r: 1, icon: 'compass',   name: 'Компас искателя',   eff: { magnet: 0.3, luck: 0.05 } },
-  { id: 'tear',    r: 1, icon: 'drop',      name: 'Кровавая слеза',    eff: { vamp: 0.15 } },
-  // --- редкие: сильные наборы ---
-  { id: 'ruby',    r: 2, icon: 'heart',     name: 'Рубиновое сердце',  eff: { hp: 35, regen: 0.5 } },
-  { id: 'hunter',  r: 2, icon: 'target',    name: 'Клинок охотника',   eff: { dmg: 0.12, crit: 0.05 } },
-  { id: 'runner',  r: 2, icon: 'boot',      name: 'Сапоги-скороходы',  eff: { speed: 0.1, haste: 0.06 } },
-  { id: 'shadow',  r: 2, icon: 'cloak',     name: 'Плащ теней',        eff: { dodge: 0.05, speed: 0.05 } },
-  { id: 'sage',    r: 2, icon: 'book',      name: 'Том мудреца',       eff: { xp: 0.12, area: 0.08 } },
-  { id: 'plate',   r: 2, icon: 'shield',    name: 'Латы',              eff: { armor: 3, hp: 15 } },
-  { id: 'mana',    r: 2, icon: 'crystal',   name: 'Кристалл маны',     eff: { area: 0.12, dur: 0.12 } },
-  // --- эпические: мощные наборы ---
-  { id: 'berserk', r: 3, icon: 'burst',     name: 'Ярость берсерка',   eff: { dmg: 0.22, critDmg: 0.3, armor: -1 } },
-  { id: 'scales',  r: 3, icon: 'shield',    name: 'Драконья чешуя',    eff: { armor: 4, thorns: 12, hp: 25 } },
-  { id: 'crown',   r: 3, icon: 'crown',     name: 'Корона короля',     eff: { xp: 0.15, luck: 0.15, magnet: 0.3 } },
-  { id: 'storm',   r: 3, icon: 'eye',       name: 'Глаз бури',         eff: { crit: 0.1, critDmg: 0.4 } },
-  { id: 'fang',    r: 3, icon: 'drop',      name: 'Вампирский клык',   eff: { vamp: 0.35, dmg: 0.08 } },
-  { id: 'phoenix', r: 3, icon: 'feather',   name: 'Перо феникса',      eff: { revive: 1 } },
+  // --- обычные: одна характеристика ---
+  { id: 'whet',     r: 0, icon: 'sword',     name: 'Точильный камень',  eff: { dmg: 0.05 } },
+  { id: 'glass',    r: 0, icon: 'hourglass', name: 'Песочные часы',     eff: { haste: 0.04 } },
+  { id: 'shard',    r: 0, icon: 'crystal',   name: 'Осколок кристалла', eff: { area: 0.04 } },
+  { id: 'candle',   r: 0, icon: 'clock',     name: 'Свеча',             eff: { dur: 0.05 } },
+  { id: 'lens',     r: 0, icon: 'eye',       name: 'Линза',             eff: { pspeed: 0.08 } },
+  { id: 'spyglass', r: 0, icon: 'velocity',  name: 'Подзорная труба',   eff: { range: 0.06 } },
+  { id: 'meat',     r: 0, icon: 'heart',     name: 'Кусок мяса',        eff: { hp: 10 } },
+  { id: 'sprout',   r: 0, icon: 'sprout',    name: 'Росток',            eff: { regen: 0.2 } },
+  { id: 'plank',    r: 0, icon: 'shield',    name: 'Деревянный щит',    eff: { armor: 1 } },
+  { id: 'boots',    r: 0, icon: 'boot',      name: 'Стоптанные сапоги', eff: { speed: 0.04 } },
+  { id: 'magnet',   r: 0, icon: 'magnet',    name: 'Магнитик',          eff: { magnet: 0.15 } },
+  { id: 'scope',    r: 0, icon: 'target',    name: 'Прицел',            eff: { crit: 0.02 } },
+  { id: 'edge',     r: 0, icon: 'glove',     name: 'Острая кромка',     eff: { critDmg: 0.1 } },
+  { id: 'notes',    r: 0, icon: 'book',      name: 'Записная книжка',   eff: { xp: 0.05 } },
+  { id: 'shoe',     r: 0, icon: 'horseshoe', name: 'Подкова',           eff: { luck: 0.05 } },
+  { id: 'leech',    r: 0, icon: 'drop',      name: 'Пиявка',            eff: { vamp: 0.1 } },
+  { id: 'fluff',    r: 0, icon: 'feather',   name: 'Пёрышко',           eff: { dodge: 0.015 } },
+  { id: 'bracelet', r: 0, icon: 'spikes',    name: 'Шипастый браслет',  eff: { thorns: 4 } },
+  // --- необычные: одна побольше или две понемногу ---
+  { id: 'blade',    r: 1, icon: 'sword',     name: 'Стальной клинок',   eff: { dmg: 0.08 } },
+  { id: 'gears',    r: 1, icon: 'hourglass', name: 'Механические часы', eff: { haste: 0.07 } },
+  { id: 'prism',    r: 1, icon: 'area',      name: 'Призма',            eff: { area: 0.07 } },
+  { id: 'lamp',     r: 1, icon: 'clock',     name: 'Лампада',           eff: { dur: 0.08 } },
+  { id: 'quiverS',  r: 1, icon: 'velocity',  name: 'Колчан стрелка',    eff: { pspeed: 0.12, range: 0.08 } },
+  { id: 'wolf',     r: 1, icon: 'heart',     name: 'Сердце волка',      eff: { hp: 18, regen: 0.15 } },
+  { id: 'mail',     r: 1, icon: 'shield',    name: 'Кольчуга',          eff: { armor: 2 } },
+  { id: 'windc',    r: 1, icon: 'cloak',     name: 'Плащ ветра',        eff: { speed: 0.05, dodge: 0.015 } },
+  { id: 'gaunt',    r: 1, icon: 'glove',     name: 'Перчатка силы',     eff: { critDmg: 0.18 } },
+  { id: 'compass',  r: 1, icon: 'compass',   name: 'Компас искателя',   eff: { magnet: 0.25, luck: 0.04 } },
+  { id: 'tear',     r: 1, icon: 'drop',      name: 'Кровавая слеза',    eff: { vamp: 0.15 } },
+  { id: 'thorns',   r: 1, icon: 'spikes',    name: 'Колючий доспех',    eff: { thorns: 6, armor: 1 } },
+  // --- редкие: две характеристики ---
+  { id: 'ruby',     r: 2, icon: 'heart',     name: 'Рубиновое сердце',  eff: { hp: 30, regen: 0.35 } },
+  { id: 'hunter',   r: 2, icon: 'target',    name: 'Клинок охотника',   eff: { dmg: 0.1, crit: 0.04 } },
+  { id: 'runner',   r: 2, icon: 'boot',      name: 'Сапоги-скороходы',  eff: { speed: 0.08, haste: 0.05 } },
+  { id: 'shadow',   r: 2, icon: 'cloak',     name: 'Плащ теней',        eff: { dodge: 0.035, speed: 0.04 } },
+  { id: 'sage',     r: 2, icon: 'book',      name: 'Том мудреца',       eff: { xp: 0.1, area: 0.05 } },
+  { id: 'plate',    r: 2, icon: 'shield',    name: 'Латы',              eff: { armor: 3, hp: 12 } },
+  { id: 'mana',     r: 2, icon: 'crystal',   name: 'Кристалл маны',     eff: { area: 0.07, dur: 0.07 } },
+  // --- эпические: сильный набор, но с минусом ---
+  { id: 'berserk',  r: 3, icon: 'burst',     name: 'Ярость берсерка',   eff: { dmg: 0.2, critDmg: 0.25, armor: -1 } },
+  { id: 'scales',   r: 3, icon: 'shield',    name: 'Драконья чешуя',    eff: { armor: 3, thorns: 10, hp: 20, speed: -0.03 } },
+  { id: 'crown',    r: 3, icon: 'crown',     name: 'Корона короля',     eff: { xp: 0.12, luck: 0.12, magnet: 0.25, dmg: -0.04 } },
+  { id: 'storm',    r: 3, icon: 'eye',       name: 'Глаз бури',         eff: { crit: 0.08, critDmg: 0.3, hp: -10 } },
+  { id: 'fang',     r: 3, icon: 'drop',      name: 'Вампирский клык',   eff: { vamp: 0.3, dmg: 0.06, regen: -0.2 } },
+  { id: 'tclock',   r: 3, icon: 'clock',     name: 'Часы времени',      eff: { haste: 0.12, dur: 0.1, dmg: -0.05 } },
+  // не больше двух за забег (потолок воскрешений)
+  { id: 'phoenix',  r: 3, icon: 'feather',   name: 'Перо феникса',      eff: { revive: 1 } },
   // --- легендарные: новая способность, каждая — один раз за забег ---
   { id: 'thunder', r: 4, legend: true, icon: 'bolt',  name: 'Громовой камень', eff: {}, desc: 'Каждый 10-й удар бьёт молнией по 4 врагам рядом' },
   { id: 'blaze',   r: 4, legend: true, icon: 'fire',  name: 'Пылающее сердце', eff: {}, desc: 'Убитые враги взрываются огнём (каждый четвёртый)' },
@@ -267,12 +278,15 @@ export const RELICS = [
   { id: 'cannon',  icon: 'burst',     name: 'Стеклянная пушка', eff: { dmg: 0.14, hp: -10 } }
 ];
 
+// Дубликатор — эпическая карточка уровня: +1 снаряд одному оружию из твоих, не больше max на оружие.
+// Ко всему оружию сразу снаряд добавляет только легендарный «Колчан изобилия».
+// Ударная волна и Семя бьют всех вокруг — снаряды им ни к чему; Огненный след от снарядов только шире
+export const DUP = { icon: 'multi', name: 'Дубликатор', max: 2, w: 0.35, r: 3, skip: ['nova', 'aura', 'trail'] };
 // Характеристики на уровне: бонус растёт с редкостью карточки
 export const STATS = [
   { id: 'might',    icon: 'sword',     name: 'Сила',              eff: { dmg: 0.06 },    max: 10 },
   { id: 'haste',    icon: 'hourglass', name: 'Скорость атаки',    eff: { haste: 0.06 },  max: 8 },
   { id: 'area',     icon: 'area',      name: 'Площадь',           eff: { area: 0.07 },   max: 8 },
-  { id: 'amount',   icon: 'multi',     name: 'Дубликатор',        eff: { amount: 1 },    max: 2, fixed: true, minR: 3 },
   { id: 'velocity', icon: 'velocity',  name: 'Скорость снарядов', eff: { pspeed: 0.08, range: 0.04 }, max: 6 },
   { id: 'dur',      icon: 'clock',     name: 'Длительность',      eff: { dur: 0.08 },    max: 6 },
   { id: 'vital',    icon: 'heart',     name: 'Здоровье',          eff: { hp: 15 },       max: 8 },
@@ -345,6 +359,13 @@ const WFACT = {
   spikes:   { n: (l, A) => [3, 4, 4, 5, 5, 6, 6, 7, 7, 8][l - 1] + A, w: ['шип', 'шипа', 'шипов'], tag: 'из-под земли под врагами, замедление' },
   trail:    { tag: 'горящая земля за героем на бегу' }
 };
+// «Всего N штук» у оружия на уровне l с A добавочными снарядами — например, «3 топора»; '' — если не штучное
+export function WFACT_N(id, l, A) {
+  const F = WFACT[id] || {};
+  if (!F.n) return '';
+  const n = F.n(l, A);
+  return n + ' ' + plural(n, F.w);
+}
 export function weaponFacts(id, l, p) {
   const I = WINFO[id], F = WFACT[id] || {}, A = p.amount || 0, out = [];
   const hit = Math.round(p.dmg * I.hit(l) * topK(l)), cd = I.cd ? I.cd(l) * (p.cdMul || 1) : 0, n = F.n ? F.n(l, A) : 0;

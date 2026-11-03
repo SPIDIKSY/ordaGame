@@ -67,7 +67,7 @@ export function newGame() {
       // noLevel — не растёт в уровне и ничего не подбирает (Лилита)
       noLevel: !!h.noLevel
     },
-    w: h.weapon ? { [h.weapon]: 1 } : {}, wOrder: h.weapon ? [h.weapon] : [], wt: h.weapon ? { [h.weapon]: 0.2 } : {}, r: {}, rOrder: [], st: {}, stOrder: [], inv: {}, invOrder: [], frostA: 0,
+    w: h.weapon ? { [h.weapon]: 1 } : {}, wOrder: h.weapon ? [h.weapon] : [], wt: h.weapon ? { [h.weapon]: 0.2 } : {}, r: {}, rOrder: [], st: {}, stOrder: [], wAmt: {}, inv: {}, invOrder: [], frostA: 0,
     doom: false, doomWarn: false, doomMin: 0, vampBank: 0, eshots: [], bossN: 0, stolen: 0, steals: 0, bySoul: false, growN: 0,
     enemies: [], shots: [], gems: [], chests: [], parts: [], texts: [], rings: [], bolts: [], meteors: [], puddles: [], flasks: [],
     spawnAcc: 0, nextId: 1, waveT: 45, bossT: 150, eliteT: 75, unlocked: 1,

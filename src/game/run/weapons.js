@@ -4,7 +4,7 @@
    ===================================================== */
 import { TAU, rnd, jag } from '../gfx.js';
 import { W, H } from '../input.js';
-import { G } from './state.js';
+import { G, amtOf } from './state.js';
 import { topK, WINFO } from '../data.js';
 import { heroAttack } from './player.js';
 import { burst, addFx } from './fx.js';
@@ -42,13 +42,13 @@ function leadAim(ox, oy, t, speed) {
   return Math.atan2(ty - oy, tx - ox);
 }
 function shoot(o) { if (G.shots.length < 700) { o.hit = []; G.shots.push(o); } }
-function fireStaff(target, l) {
+function fireStaff(target, l, A) {
   const g = G, p = g.p;
   const base = Math.atan2(target.y - p.y, target.x - p.x);
   p.face = Math.cos(base) >= 0 ? 1 : -1;
   const ox = p.x + 12 * p.face, oy = p.y - 15;
   burst(ox, oy, '#ffd27a', 3, 110);
-  const n = WINFO.staff.per(l, p.amount);
+  const n = WINFO.staff.per(l, A);
   const sp = 460 * p.pspeedMul, aim = leadAim(ox, oy, target, sp);
   const dmg = p.dmg * WINFO.staff.hit(l) * topK(l), pierce = (l >= 4 ? 1 : 0) + (l >= 7 ? 1 : 0);
   for (let i = 0; i < n; i++) {
@@ -56,11 +56,11 @@ function fireStaff(target, l) {
     shoot({ kind: 'bolt', x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg, pierce, life: 380 * p.rangeMul / sp + 0.15, r: 7 });
   }
 }
-function castChain(l) {
+function castChain(l, A) {
   const g = G, p = g.p, cand = enemiesWithin(380);
   if (!cand.length) return false;
   let cur = cand[Math.floor(Math.random() * cand.length)];
-  const hit = [cur.id], dmg = p.dmg * WINFO.chain.hit(l) * topK(l), jumps = 3 + l + p.amount;
+  const hit = [cur.id], dmg = p.dmg * WINFO.chain.hit(l) * topK(l), jumps = 3 + l + A;
   let px = p.x + 12 * p.face, py = p.y - 15;
   for (let j = 0; j <= jumps && cur; j++) {
     g.bolts.push({ pts: jag(px, py, cur.x, cur.y), A: [px, py], B: [cur.x, cur.y], life: 0.24 });
@@ -90,7 +90,7 @@ export function explode(x, y, r, dmg) {
   g.shake = Math.max(g.shake, 0.06);
 }
 export function updateWeapons(dt) {
-  const g = G, p = g.p, A = p.amount;
+  const g = G;
   for (let wi = 0; wi < g.wOrder.length; wi++) {
     const id = g.wOrder[wi], l = g.w[id];
     if (id === 'blades' || id === 'aura' || id === 'trail') continue;
@@ -107,7 +107,7 @@ export function updateWeapons(dt) {
 }
 // Выстрел одного оружия
 function fireWeapon(id, l) {
-  const g = G, p = g.p, A = p.amount;
+  const g = G, p = g.p, A = amtOf(id);
   const fn = FIRE[id];
   if (fn) fn(id, l, g, p, A);
 }
@@ -115,7 +115,7 @@ function fireWeapon(id, l) {
 const FIRE = {
   staff(id, l, g, p, A) {
   const t = nearest(p.x, p.y, 380 * p.rangeMul);
-  if (t) { fireStaff(t, l); g.wt[id] = WINFO.staff.cd(l) * cdK(); } else g.wt[id] = 0.05;
+  if (t) { fireStaff(t, l, A); g.wt[id] = WINFO.staff.cd(l) * cdK(); } else g.wt[id] = 0.05;
   },
   nova(id, l, g, p, A) {
   g.wt[id] = WINFO.nova.cd(l) * cdK();
@@ -130,7 +130,7 @@ const FIRE = {
   for (let k = 0; k < 18; k++) { const a = k * TAU / 18; g.parts.push({ x: p.x, y: p.y, vx: Math.cos(a) * rad * 2.2, vy: Math.sin(a) * rad * 2.2, life: 0.35, col: '#ffd27a', s: 3 }); }
   },
   chain(id, l, g, p, A) {
-  g.wt[id] = castChain(l) ? WINFO.chain.cd(l) * cdK() : 0.2;
+  g.wt[id] = castChain(l, A) ? WINFO.chain.cd(l) * cdK() : 0.2;
   },
   meteor(id, l, g, p, A) {
   const cand = enemiesWithin(Math.max(W, H) * 0.6);

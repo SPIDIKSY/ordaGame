@@ -3,7 +3,7 @@
    След, лезвия, аура, метеориты, лужи.
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
-import { G } from './state.js';
+import { G, amtOf } from './state.js';
 import { topK, WINFO } from '../data.js';
 import { heroAttack } from './player.js';
 import { burst, addFx } from './fx.js';
@@ -13,12 +13,12 @@ import { compact, alive, notDone } from './compact.js';
 const auraR = () => (70 + 12 * G.w.aura) * G.p.area;
 // Оружие, которое действует постоянно: след, лезвия, аура, метеориты, лужи
 export function updateZoneWeapons(dt) {
-  const g = G, p = g.p, A = p.amount;
-  zoneTrail(dt, g, p, A);
-  zoneBlades(dt, g, p, A);
-  zoneAura(dt, g, p, A);
-  zoneMeteors(dt, g, p, A);
-  zonePoison(dt, g, p, A);
+  const g = G, p = g.p;
+  zoneTrail(dt, g, p, amtOf('trail'));
+  zoneBlades(dt, g, p, amtOf('blades'));
+  zoneAura(dt, g, p);
+  zoneMeteors(dt, g, p);
+  zonePoison(dt, g, p);
 }
 // огненный след
 function zoneTrail(dt, g, p, A) {
@@ -50,7 +50,7 @@ function zoneBlades(dt, g, p, A) {
   } else g.bladeN = 0;
 }
 // святая аура
-function zoneAura(dt, g, p, A) {
+function zoneAura(dt, g, p) {
   if (g.w.aura) {
     g.wt.aura = (g.wt.aura || 0) - dt;
     if (g.wt.aura <= 0) {
@@ -69,7 +69,7 @@ function zoneAura(dt, g, p, A) {
   }
 }
 // метеориты
-function zoneMeteors(dt, g, p, A) {
+function zoneMeteors(dt, g, p) {
   for (let i = 0; i < g.meteors.length; i++) {
     const m = g.meteors[i];
     m.t -= dt;
@@ -94,7 +94,7 @@ function zoneMeteors(dt, g, p, A) {
   compact(g.meteors, notDone);
 }
 // ядовитые флаконы и лужи
-function zonePoison(dt, g, p, A) {
+function zonePoison(dt, g, p) {
   for (let i = 0; i < g.flasks.length; i++) {
     const f = g.flasks[i]; f.t += dt;
     if (f.t >= f.T && !f.done) {

@@ -20,3 +20,8 @@ export function resumePlay() {
   if (G) { G.grace = GRACE_FREEZE + GRACE_RAMP; G.p.inv = Math.max(G.p.inv, GRACE_INV); }
   setState('play');
 }
+
+// Добавочные снаряды оружия: общие (герой, «Колчан изобилия») плюс Дубликатор именно этого оружия
+export const amtOf = (id) => G.p.amount + ((G.wAmt && G.wAmt[id]) || 0);
+// Характеристики для подсчёта урона одного оружия (weaponNums, weaponFacts в data.js)
+export const wStats = (id) => ({ dmg: G.p.dmg, amount: amtOf(id), cdMul: G.p.cdMul, luck: G.p.luck });

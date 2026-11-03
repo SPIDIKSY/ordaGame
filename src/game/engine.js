@@ -170,6 +170,7 @@ if (import.meta.env && import.meta.env.DEV) {
       else if (c.type === 'wnew') sc += owned < 4 ? 2.5 : 0.5;
       else if (c.type === 'rnew' || c.type === 'rup') sc += 1.5;
       else if (c.type === 'stat') sc += 1 + c.r * 0.3;
+      else if (c.type === 'dup') sc += 2;
       if (sc > bs) { bs = sc; bi = i; }
     });
     skipAcceptDelay(); pickChoice(bi);

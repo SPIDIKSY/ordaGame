@@ -1,10 +1,10 @@
 /* =====================================================
    НОВЫЙ УРОВЕНЬ: оружие, реликвии, характеристики, переброс
    ===================================================== */
-import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, HDEF, wLv, weaponFacts, effParts } from '../data.js';
+import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, HDEF, wLv, weaponFacts, effParts, DUP, WFACT_N } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
-import { state, G, setState, resumePlay } from './state.js';
+import { state, G, setState, resumePlay, wStats, amtOf } from './state.js';
 import { applyEff, effUseful } from './player.js';
 
 let acceptAt = 0;
@@ -23,11 +23,15 @@ function buildChoices() {
   g.rOrder.forEach((id) => { if (g.r[id] < RMAX && effUseful(p, RDEF[id].eff)) pool.push({ type: 'rup', id, w: 2 }); });
   if (g.rOrder.length < MAX_RELICS) RELICS.forEach((R) => { if (!g.r[R.id] && effUseful(p, R.eff)) pool.push({ type: 'rnew', id: R.id, w: 0.9 }); });
   STATS.forEach((S) => { const n = g.st[S.id] ? g.st[S.id].n : 0; if (n < S.max && effUseful(p, S.eff)) pool.push({ type: 'stat', id: S.id, w: S.fixed ? 0.3 : 0.8 }); });
+  // Дубликатор: +1 снаряд одному из твоих видов оружия (оружие выбирается, когда карточка выпала)
+  const dupOk = g.wOrder.filter((id) => DUP.skip.indexOf(id) < 0 && (g.wAmt[id] || 0) < DUP.max);
+  if (dupOk.length) pool.push({ type: 'dup', w: DUP.w });
   const out = [];
   while (out.length < 3 && pool.length) {
     let r = Math.random() * pool.reduce((a, b) => a + b.w, 0), idx = 0;
     for (; idx < pool.length - 1; idx++) { r -= pool[idx].w; if (r <= 0) break; }
     const c = pool.splice(idx, 1)[0];
+    if (c.type === 'dup') c.id = dupOk[Math.floor(Math.random() * dupOk.length)];
     if (c.type === 'stat') {
       const S = SDEF[c.id];
       c.r = Math.max(rollStatRarity(), S.minR || 0);
@@ -51,7 +55,7 @@ function cardParts(c) {
   if (c.type === 'wnew' || c.type === 'wup') {
     const Wd = WDEF[c.id], n = G.w[c.id] || 0;
     icon = Wd.icon; name = Wd.name;
-    if (c.type === 'wnew') { cc = '#ffb02e'; cat = 'Новое оружие'; lv = 'слот ' + (G.wOrder.length + 1) + ' из ' + MAX_WEAPONS; desc = weaponFacts(c.id, 1, G.p); hint = Wd.desc; cls = 'weap'; }
+    if (c.type === 'wnew') { cc = '#ffb02e'; cat = 'Новое оружие'; lv = 'слот ' + (G.wOrder.length + 1) + ' из ' + MAX_WEAPONS; desc = weaponFacts(c.id, 1, wStats(c.id)); hint = Wd.desc; cls = 'weap'; }
     else { cc = '#ffd56e'; cat = 'Оружие'; lv = 'ур. ' + (n + 1) + ' из ' + WMAX; desc = wLv(Wd, n - 1, G.p.steal); cls = 'wup'; pips = [n + 1, WMAX]; }
   } else if (c.type === 'rnew' || c.type === 'rup') {
     const R = RDEF[c.id], n = G.r[c.id] || 0;
@@ -61,6 +65,11 @@ function cardParts(c) {
   } else if (c.type === 'stat') {
     const S = SDEF[c.id], n = G.st[c.id] ? G.st[c.id].n : 0;
     cc = RAR[c.r].col; icon = S.icon; name = S.name; cat = RAR[c.r].name; lv = 'ур. ' + (n + 1) + ' из ' + S.max; desc = effParts(c.eff).join(' · '); hint = effHint(c.eff) + capHint(c.eff); cls = 'r' + c.r; pips = [n + 1, S.max];
+  } else if (c.type === 'dup') {
+    const Wd = WDEF[c.id], n = (G.wAmt[c.id] || 0) + 1, cnt = WFACT_N(c.id, G.w[c.id], amtOf(c.id) + 1);
+    cc = RAR[DUP.r].col; icon = DUP.icon; name = DUP.name + ' · ' + Wd.name; cat = RAR[DUP.r].name; lv = 'ур. ' + n + ' из ' + DUP.max; cls = 'r' + DUP.r; pips = [n, DUP.max];
+    desc = '+1 снаряд к этому оружию' + (cnt ? ' (всего ' + cnt + ')' : '');
+    hint = 'Только для «' + Wd.name + '». Ко всему оружию сразу снаряд добавляет легендарный «Колчан изобилия».';
   } else { cc = '#ff7a8a'; icon = 'heart'; name = 'Лечение'; cat = 'Всё прокачано'; lv = ''; desc = 'Восстановить 50 здоровья.'; }
   return { cc, cls, icon, cat, lv, name, desc, hint, pips };
 }
@@ -98,7 +107,8 @@ export function pickChoice(i) {
     let k = g.st[c.id];
     if (!k) { k = g.st[c.id] = { n: 0, total: {}, best: 0 }; g.stOrder.push(c.id); }
     k.n++; addEff(k.total, c.eff); k.best = Math.max(k.best, c.r);
-  } else p.hp = Math.min(p.maxHp, p.hp + 50);
+  } else if (c.type === 'dup') g.wAmt[c.id] = (g.wAmt[c.id] || 0) + 1;
+  else p.hp = Math.min(p.maxHp, p.hp + 50);
   g.pending--;
   if (g.pending > 0) openLevelUp(); else resumePlay();
 }
