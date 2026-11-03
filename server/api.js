@@ -270,7 +270,8 @@ export function createHandler({ kv, now = () => Date.now() }) {
       if (!r) return json(400, { error: 'Плохие данные' });
       const t = now(), why = checkReport(run, t, r, false);
       if (why) { await kv.put('run/' + runId, { ...run, status: 'rejected', reason: why, finished_at: t }); return json(422, { error: 'Забег не засчитан: ' + why }); }
-      await kv.put('run/' + runId, { ...run, beats: run.beats + 1, last_beat: t, last_t: r.time, last_kills: r.kills, last_level: r.level });
+      // предпоследний отчёт тоже помним — см. «игровое время идёт быстрее реального» в anticheat.js
+      await kv.put('run/' + runId, { ...run, beats: run.beats + 1, prev_beat: run.last_beat, prev_t: run.last_t, last_beat: t, last_t: r.time, last_kills: r.kills, last_level: r.level });
       return json(200, { ok: true });
     },
 

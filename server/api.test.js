@@ -50,6 +50,24 @@ async function playFair(s, token, hero, seconds, killsPerSec = 3) {
   return s.call('POST', 'runs/' + body.runId + '/finish', rep(seconds), token);
 }
 
+// Отчёты забега с 15-й по until-ю секунду игры. rep(t) — что игра пришлёт к секунде t,
+// realPerBeat — сколько реальных секунд проходит между отчётами. Возвращает первый ответ не 200 или последний
+async function beatsUntil(s, token, runId, rep, until, realPerBeat = 15) {
+  let r = null;
+  for (let t = 15; t <= until; t += 15) {
+    s.tick(realPerBeat);
+    r = await s.call('POST', 'runs/' + runId + '/beat', rep(t), token);
+    if (r.status !== 200) return r;
+  }
+  return r;
+}
+// Как в игре (src/game/run/update.js): с 8:00 Волна смерти, враги появляются всё чаще
+const doomSpawned = (t) => { const d = Math.max(0, t - 480); return 16 * d + d * d / 24; };
+// Сильный игрок: до 8:00 — 10 убийств в секунду, дальше убивает 80% появляющихся врагов
+// и раз в минуту — бомба по полному экрану (+400 разом)
+const strongKills = (t) => Math.min(t, 480) * 10 + 0.8 * doomSpawned(t) + 400 * Math.floor(Math.max(0, t - 480) / 60);
+const strongRep = (t) => ({ time: t, kills: Math.floor(strongKills(t)), level: 1 + Math.floor(t / 8), bosses: Math.floor(t / 150) });
+
 test('ник: похожие написания считаются одинаковыми', () => {
   assert.equal(nickKey('Вася'), nickKey('вася'));
   assert.equal(nickKey('Вася'), nickKey('Bacя'));
@@ -203,6 +221,73 @@ for (const [name, mk] of kvs.list) {
 }
 
 for (const [name, mk] of kvs.list) {
+  test(name + ': долгий забег в Волне смерти засчитывается (30 минут, тысячи убийств)', async () => {
+    const s = setup(mk());
+    const tok = (await s.call('POST', 'register', { login: 'pro', password: '123456' })).body.token;
+    const run = (await s.call('POST', 'runs', { hero: 'necro' }, tok)).body.runId;
+    const last = await beatsUntil(s, tok, run, strongRep, 1800);
+    assert.equal(last.status, 200, JSON.stringify(last.body));
+    const fin = await s.call('POST', 'runs/' + run + '/finish', strongRep(1800), tok);
+    assert.equal(fin.status, 200, JSON.stringify(fin.body));
+    const row = (await s.call('GET', 'leaderboard')).body.rows[0];
+    assert.equal(row.time, 1800);
+    assert.equal(row.kills, Math.floor(strongKills(1800)));
+  });
+
+  test(name + ': забег Негжера (Друид, 21:18, 35 991 убийство, 230 уровень) засчитывается', async () => {
+    const s = setup(mk());
+    const tok = (await s.call('POST', 'register', { login: 'negzher', password: '123456' })).body.token;
+    const run = (await s.call('POST', 'runs', { hero: 'druid' }, tok)).body.runId;
+    // по скриншотам: 4800 к 8:00, 29 177 к 17:32, 35 991 к 21:18; между ними убийства идут волнами
+    const pts = [[0, 0], [480, 4800], [1052, 29177], [1278, 35991]];
+    const kills = (t) => {
+      let i = 1; while (t > pts[i][0]) i++;
+      const [t0, k0] = pts[i - 1], [t1, k1] = pts[i];
+      const wave = t0 === 480 ? 250 * Math.sin(Math.PI * 10 * (t - t0) / (t1 - t0)) : 0;
+      return k0 + (k1 - k0) * (t - t0) / (t1 - t0) + wave;
+    };
+    const rep = (t) => ({ time: t, kills: Math.floor(kills(t)), level: 1 + Math.floor(229 * t / 1278), bosses: Math.floor(t / 150) });
+    const last = await beatsUntil(s, tok, run, rep, 1275);
+    assert.equal(last.status, 200, JSON.stringify(last.body));
+    s.tick(3);
+    const fin = await s.call('POST', 'runs/' + run + '/finish', { time: 1278, kills: 35991, level: 230, bosses: 8 }, tok);
+    assert.equal(fin.status, 200, JSON.stringify(fin.body));
+    assert.equal((await s.call('GET', 'leaderboard')).body.rows[0].kills, 35991);
+  });
+
+  test(name + ': один застрявший в сети отчёт не отменяет забег, ускоренная игра — отменяет', async () => {
+    const s = setup(mk());
+    const tok = (await s.call('POST', 'register', { login: 'mobile', password: '123456' })).body.token;
+    const rep = (t) => ({ time: t, kills: t * 3, level: 1 + Math.floor(t / 20), bosses: 0 });
+    let run = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
+    const beat = (t) => s.call('POST', 'runs/' + run + '/beat', rep(t), tok);
+    s.tick(15); assert.equal((await beat(15)).status, 200);
+    s.tick(15); assert.equal((await beat(30)).status, 200);
+    s.tick(27); assert.equal((await beat(45)).status, 200, 'отчёт застрял в сети на 12 секунд');
+    s.tick(3); assert.equal((await beat(60)).status, 429, 'следующий пришёл сразу за ним — не засчитан, но и не отменяет');
+    let r;
+    for (let t = 75; t <= 120; t += 15) { s.tick(15); r = await beat(t); assert.equal(r.status, 200, t + ': ' + JSON.stringify(r.body)); }
+    assert.equal((await s.call('POST', 'runs/' + run + '/finish', rep(120), tok)).status, 200);
+    // игра идёт вдвое быстрее реального времени
+    run = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
+    for (let t = 15; t <= 90; t += 15) { s.tick(7.5); r = await beat(t); if (r.status !== 200) break; }
+    assert.equal(r.status, 422, 'ускоренная игра не проходит');
+  });
+
+  test(name + ': в Волне смерти накрутить убийства тоже нельзя', async () => {
+    const s = setup(mk());
+    const tok = (await s.call('POST', 'register', { login: 'cheat2', password: '123456' })).body.token;
+    const run = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
+    assert.equal((await beatsUntil(s, tok, run, strongRep, 885)).status, 200);
+    s.tick(15);
+    const bad = { ...strongRep(900), kills: strongRep(885).kills + 5000 };
+    const r = await s.call('POST', 'runs/' + run + '/beat', bad, tok);
+    assert.equal(r.status, 422);
+    assert.match(r.body.error, /убийств/);
+  });
+}
+
+for (const [name, mk] of kvs.list) {
   test(name + ': запрещённые ники не пройти в любом написании', async () => {
     const s = setup(mk());
     for (const nick of ['admin', 'Админ', 'Аdmіn', 'a d m i n', 'adm1n', 'Admin228', 'Модератор', 'xyй', 'Сука']) {
@@ -277,3 +362,9 @@ for (const [name, mk] of kvs.list) {
     assert.match(last.body.error, /Лилиты/);
   });
 }
+
+test('Волна смерти на сервере начинается тогда же, когда в игре', async () => {
+  const { DOOM_T } = await import('./anticheat.js');
+  const game = await import('../src/game/data.js');
+  assert.equal(DOOM_T, game.DOOM_T);
+});

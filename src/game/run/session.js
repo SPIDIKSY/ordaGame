@@ -34,7 +34,12 @@ export function sendBeat(g) {
   const rep = runReport(g);
   // отчёты уходят строго по очереди, чтобы сервер видел их в правильном порядке
   g.run.chain = g.run.chain.then(() => (g.run.id && !g.run.rejected ? api.beat(g.run.id, rep, g.run.token) : null))
-    .catch((e) => { if (e.status === 422 || e.status === 404) g.run.rejected = e.message; });
+    .catch((e) => {
+      if (e.status !== 422 && e.status !== 404) return;
+      g.run.rejected = e.message;
+      // говорим сразу, а не через час на экране смерти
+      if (G === g) toast(e.status === 422 ? e.message : 'Забег не засчитан: ' + e.message.toLowerCase());
+    });
 }
 function finishOnlineRun(g) {
   const acc = ui.get().account || {};
