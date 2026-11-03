@@ -30,7 +30,7 @@ export const HERO_LOOK = {
   ludik:  { body: bodyLudik,  ring: '255,210,80',  glow: 'gold',   sleeve: '#b8202e', sleeveLine: '#1a0306', cuff: '#f2eee6', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#26282f', handLine: '#000', atk: 0.3,
             pose: (P) => poseCaster(P, 0), weapon: drawCoin },
   // scale — мини-герой: Лилита меньше остальных (ноги остаются на земле)
-  lilita: { body: bodyLilita, ring: '230,150,90',  glow: null,     sleeve: '#9a5a26', sleeveLine: '#2a160a', cuff: null, sh: [4.4, -4.8], arm: 8.6, phi0: 0.5, hand: '#7a4418', handLine: '#2a160a', atk: 0.3,
+  lilita: { body: bodyLilita, ring: '200,170,255', glow: null,     sleeve: '#f2eef8', sleeveLine: '#5a4a6e', cuff: null, sh: [4.4, -4.8], arm: 8.6, phi0: 0.5, hand: '#ffffff', handLine: '#5a4a6e', atk: 0.3,
             pose: (P) => poseCaster(P, 0), weapon: drawNothing, scale: 0.78 }
 };
 

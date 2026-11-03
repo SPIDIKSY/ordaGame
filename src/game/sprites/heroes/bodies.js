@@ -462,44 +462,48 @@ export function bodyLudik(x, f, walk) {
   x.strokeStyle = '#e8f0e0'; x.lineWidth = 0.9; x.beginPath(); x.moveTo(-6.4, -14.4); x.quadraticCurveTo(1, -18.2, 8.4, -14.2); x.stroke();
 }
 
-// Лилита — маленькая ласка: рыжевато-бурая спинка, светлый животик, длинный хвост и шарфик
+// Лилита — маленькая белая ласка: пушистая белая шёрстка с сиреневой тенью, розовые ушки,
+// чёрный ошейник с золотым полумесяцем, длинный белый хвост
 export function bodyLilita(x, f, walk) {
   const { st, bob } = walkOf(f, walk);
   x.translate(0, -bob);
-  // длинный пушистый хвост с тёмным кончиком
+  const LINE = '#5a4a6e', FUR = '#ffffff', SHADE = '#e2d8f0';
+  // длинный пушистый хвост
   x.lineCap = 'round';
   const tail = () => { x.beginPath(); x.moveTo(-3, 11); x.bezierCurveTo(-14, 12, -16 - st, 2, -12 - st * 1.8, -6); x.stroke(); };
-  x.strokeStyle = '#3a1e0a'; x.lineWidth = 6.2; tail();
-  x.strokeStyle = '#a8642c'; x.lineWidth = 4.4; tail();
-  x.fillStyle = '#2a160a'; circ(x, -12 - st * 1.8, -6, 2.6);
+  x.strokeStyle = LINE; x.lineWidth = 6.6; tail();
+  x.strokeStyle = SHADE; x.lineWidth = 5; tail();
+  x.strokeStyle = FUR; x.lineWidth = 3; tail();
+  x.fillStyle = FUR; circ(x, -12 - st * 1.8, -6, 2.5);
   // лапки
-  x.fillStyle = '#7a4418'; x.strokeStyle = '#2a160a'; x.lineWidth = 0.8;
+  x.fillStyle = FUR; x.strokeStyle = LINE; x.lineWidth = 0.8;
   for (const px of [-2.8 + st * 3, 3.6 - st * 3]) { x.beginPath(); x.ellipse(px, 17.4 + bob, 3, 1.9, 0, 0, TAU); x.fill(); x.stroke(); }
   // гибкое тело
   x.beginPath(); x.moveTo(-5, -6); x.quadraticCurveTo(-8.4, 4, -6, 15.6); x.quadraticCurveTo(0.6, 18, 6.4, 15.4); x.quadraticCurveTo(8, 4, 4.6, -6.4); x.closePath();
-  x.fillStyle = lg(x, -7, 0, 7, 0, [[0, '#8a4a1c'], [0.6, '#b8743a'], [1, '#9a5a26']]); x.fill();
-  x.strokeStyle = '#2a160a'; x.lineWidth = 1.1; x.stroke();
-  // светлый животик
-  x.beginPath(); x.moveTo(-0.6, -5); x.quadraticCurveTo(-2.6, 5, -0.8, 14.6); x.quadraticCurveTo(3.4, 15.2, 5, 13.6); x.quadraticCurveTo(5.8, 4, 3.6, -5); x.closePath();
-  x.fillStyle = '#f6e4c4'; x.fill();
-  // красный шарфик с хвостиком
-  x.fillStyle = '#d8344a'; x.strokeStyle = '#5a0a18'; x.lineWidth = 0.7;
-  x.beginPath(); x.ellipse(0.6, -5.6, 6, 2, 0, 0, TAU); x.fill(); x.stroke();
-  x.beginPath(); x.moveTo(-4, -5); x.lineTo(-7.6 - st, 1.4); x.lineTo(-5, 1.8); x.lineTo(-2.6, -4.4); x.closePath(); x.fill(); x.stroke();
-  // голова: вытянутая мордочка
+  x.fillStyle = lg(x, -7, 0, 7, 0, [[0, SHADE], [0.55, FUR], [1, '#efe8f6']]); x.fill();
+  x.strokeStyle = LINE; x.lineWidth = 1.1; x.stroke();
+  // мягкая тень на животике
+  x.strokeStyle = 'rgba(150,130,190,.35)'; x.lineWidth = 0.7;
+  x.beginPath(); x.moveTo(-1.6, 2); x.quadraticCurveTo(-2.4, 8, -0.6, 13.6); x.stroke();
+  // чёрный ошейник с золотым полумесяцем
+  x.fillStyle = '#16121e'; x.strokeStyle = '#000'; x.lineWidth = 0.6;
+  x.beginPath(); x.ellipse(0.8, -5.8, 5.8, 1.7, 0, 0, TAU); x.fill(); x.stroke();
+  x.fillStyle = '#ffd56e'; circ(x, 2.4, -4.4, 1.6);
+  x.fillStyle = '#16121e'; circ(x, 3, -4.9, 1.25);
+  x.fillStyle = '#fff6c8'; circ(x, 1.7, -3.9, 0.35);
+  // голова: вытянутая белая мордочка
   x.beginPath(); x.ellipse(1.6, -11.6, 6.6, 5.6, 0, 0, TAU);
-  x.fillStyle = rg(x, 0, -14, 1, 1.6, -11.6, 7, [[0, '#c8844a'], [1, '#8a4a1c']]); x.fill();
-  x.strokeStyle = '#2a160a'; x.lineWidth = 1.1; x.stroke();
-  // светлые щёки и подбородок
-  x.fillStyle = '#f6e4c4'; ell(x, 5.4, -9.2, 3.4, 2.4); ell(x, 1.2, -8.2, 2.6, 1.6);
-  // круглые ушки
+  x.fillStyle = rg(x, 0, -14, 1, 1.6, -11.6, 7, [[0, FUR], [1, SHADE]]); x.fill();
+  x.strokeStyle = LINE; x.lineWidth = 1.1; x.stroke();
+  // круглые ушки с розовым
   for (const [cx, cy] of [[-2.8, -16.2], [4.6, -16.8]]) {
-    x.fillStyle = '#8a4a1c'; circ(x, cx, cy, 2.1); x.strokeStyle = '#2a160a'; x.lineWidth = 0.8; x.beginPath(); x.arc(cx, cy, 2.1, 0, TAU); x.stroke();
-    x.fillStyle = '#e8a8a0'; circ(x, cx + 0.2, cy + 0.2, 1);
+    x.fillStyle = FUR; circ(x, cx, cy, 2.1); x.strokeStyle = LINE; x.lineWidth = 0.8; x.beginPath(); x.arc(cx, cy, 2.1, 0, TAU); x.stroke();
+    x.fillStyle = '#f4b4c8'; circ(x, cx + 0.2, cy + 0.2, 1.05);
   }
-  // блестящие глазки, нос, усики
-  x.fillStyle = '#141008'; ell(x, 3.2, -12.2, 1.2, 1.4); ell(x, 6.6, -12.4, 1.1, 1.35);
+  // румянец, блестящие чёрные глазки, розовый носик, усики
+  x.fillStyle = 'rgba(255,150,180,.35)'; ell(x, 6.4, -9.6, 1.6, 1);
+  x.fillStyle = '#141018'; ell(x, 3.2, -12.2, 1.2, 1.4); ell(x, 6.6, -12.4, 1.1, 1.35);
   x.fillStyle = '#fff'; circ(x, 2.8, -12.8, 0.45); circ(x, 6.2, -13, 0.4);
-  x.fillStyle = '#2a1410'; ell(x, 8.2, -9.8, 1.1, 0.8);
-  x.strokeStyle = 'rgba(40,20,10,.7)'; x.lineWidth = 0.4; line(x, 8.6, -9.4, 11.6, -10.2); line(x, 8.6, -9, 11.6, -8.4);
+  x.fillStyle = '#e88aa8'; ell(x, 8.2, -9.8, 1.1, 0.8);
+  x.strokeStyle = 'rgba(90,74,110,.6)'; x.lineWidth = 0.4; line(x, 8.6, -9.4, 11.6, -10.2); line(x, 8.6, -9, 11.6, -8.4);
 }
