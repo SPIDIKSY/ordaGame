@@ -42,7 +42,7 @@ function frame(now) {
   const t0 = performance.now();
   if (state === 'play') update(dt);
   const t1 = performance.now();
-  render({ ctx, G, state, W, H, dpr, hx, hy, stick, now, heroSpr });
+  if (ctx) render({ ctx, G, state, W, H, dpr, hx, hy, stick, now, heroSpr });
   const t2 = performance.now();
   if (G && state !== 'menu') updateHud();
   const t3 = performance.now();
@@ -81,7 +81,9 @@ export function mountGame(cv, app) {
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
   canvas.addEventListener('contextmenu', onCtx);
-  window.addEventListener('keydown', onKeyDown);
+  // в фазе «перехвата»: игра первой видит Esc и знает, открыто ли окно поверх паузы,
+  // даже если окно подписалось на клавиши раньше игры (так бывает после смены холста)
+  window.addEventListener('keydown', onKeyDown, true);
   window.addEventListener('keyup', onKeyUp);
   window.addEventListener('resize', resize);
   window.addEventListener('blur', onBlur);
@@ -102,7 +104,7 @@ export function mountGame(cv, app) {
     canvas.removeEventListener('pointerup', onUp);
     canvas.removeEventListener('pointercancel', onUp);
     canvas.removeEventListener('contextmenu', onCtx);
-    window.removeEventListener('keydown', onKeyDown);
+    window.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('keyup', onKeyUp);
     window.removeEventListener('resize', resize);
     window.removeEventListener('blur', onBlur);

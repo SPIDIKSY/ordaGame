@@ -29,6 +29,7 @@ function fittedTile(tile) {
     c = document.createElement('canvas');
     c.width = c.height = px;
     c.getContext('2d').drawImage(tile, 0, 0, px, px);
+    c._glOwn = true;   // WebGL: плитка в своей текстуре, иначе на стыках плиток видны швы
     fitted.set(tile, c);
   }
   return c;

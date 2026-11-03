@@ -20,8 +20,14 @@ export const FPS_LIMITS = [
   { id: 30, name: '30' }
 ];
 
+// Чем рисовать: gl — видеокартой (WebGL), 2d — обычным холстом (запасной способ)
+export const RENDERERS = [
+  { id: 'gl', name: 'Видеокарта (WebGL)' },
+  { id: '2d', name: 'Обычный' }
+];
+
 const KEY = 'orda-settings';
-const DEFAULTS = { quality: 'high', fps: 0, showFps: false };
+const DEFAULTS = { quality: 'high', fps: 0, showFps: false, renderer: 'gl' };
 
 function load() {
   try {
@@ -29,13 +35,16 @@ function load() {
     return {
       quality: QUALITY[s.quality] ? s.quality : DEFAULTS.quality,
       fps: FPS_LIMITS.some((f) => f.id === s.fps) ? s.fps : DEFAULTS.fps,
-      showFps: typeof s.showFps === 'boolean' ? s.showFps : DEFAULTS.showFps
+      showFps: typeof s.showFps === 'boolean' ? s.showFps : DEFAULTS.showFps,
+      renderer: RENDERERS.some((r) => r.id === s.renderer) ? s.renderer : DEFAULTS.renderer
     };
   } catch (_) { return { ...DEFAULTS }; }
 }
 
 // Сам объект не заменяется, меняются только поля: модули отрисовки читают его каждый кадр
 export const settings = load();
+// Чем игра рисует на самом деле: если WebGL не запустился, здесь будет '2d'
+export const renderInfo = { active: '2d', glFailed: false };
 const listeners = new Set();
 export function onSettings(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 

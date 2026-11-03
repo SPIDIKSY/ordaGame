@@ -15,13 +15,14 @@ export let vig = null, redVig = null;
 // экрана в пикселях (scale — их плотность): каждый кадр его надо только скопировать
 // 1:1. Раньше оно хранилось вдвое меньше и каждый кадр растягивалось — это стоило
 // около 3 мс на кадр там, где браузер рисует холст процессором.
-export function resizeRender(w, h, heroY, scale) {
+export function resizeRender(w, h, heroY, scale, gl) {
   if (!(w > 0) || !(h > 0)) return;
   // Доля высоты, на которой стоит герой: центр затемнения. Если сюда придёт
   // мусор, createRadialGradient бросает исключение и игра не запускается.
   const fy = Number.isFinite(heroY / h) ? Math.min(1, Math.max(0, heroY / h)) : 0.5;
   vig = document.createElement('canvas');
-  const k = scale > 0 ? scale : 1;
+  // видеокарта растягивает картинку бесплатно и гладко — ей хватит затемнения вчетверо меньше
+  const k = (scale > 0 ? scale : 1) * (gl ? 0.25 : 1);
   vig.width = Math.max(2, Math.round(w * k)); vig.height = Math.max(2, Math.round(h * k));
   const v = vig.getContext('2d'), R = Math.hypot(vig.width, vig.height) * 0.6;
   const g = v.createRadialGradient(vig.width / 2, vig.height * fy, R * 0.3, vig.width / 2, vig.height * fy, R);

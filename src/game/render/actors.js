@@ -101,6 +101,17 @@ function windup(e) {
   return 0;
 }
 
+// Холст героя для WebGL: 150×170 точек, (ax, ay) — где на нём стоят ноги героя
+const HERO_L = { w: 150, h: 170, ax: 75, ay: 112 };
+let heroCv = null;
+function heroLayer() {
+  const w = Math.ceil(HERO_L.w * dpr), h = Math.ceil(HERO_L.h * dpr);
+  if (!heroCv || heroCv.width !== w || heroCv.height !== h) {
+    heroCv = document.createElement('canvas'); heroCv.width = w; heroCv.height = h; heroCv._glOwn = true;
+  }
+  return heroCv.getContext('2d');
+}
+
 function drawPlayer(now) {
   const p = G.p, x = hx, y = hy, L = heroSpr.look;
   if (G.buffs.rage > 0 || G.buffs.haste > 0) {
@@ -116,18 +127,29 @@ function drawPlayer(now) {
   // (два шага на цикл из 4 кадров); в покое — дыхание; при атаке — лёгкое «приседание»
   const up = p.moving ? Math.abs(Math.sin(p.walkT * 9 / 4 * TAU)) : 0, by = y + 18 - up * 2.6;
   const br = (p.moving ? 1 - (1 - up) * 0.045 : 1 + Math.sin(now / 350) * 0.025) * (1 - atkK * 0.04);
-  if (p.inv > 0 && Math.floor(now / 60) % 2 === 0) ctx.globalAlpha = 0.55;
+  const blink = p.inv > 0 && Math.floor(now / 60) % 2 === 0 ? 0.55 : 1;
   const rot = ((p.moving ? 0.07 : 0) + atkK * 0.06) * p.face;
   const co = Math.cos(rot), si = Math.sin(rot);
-  ctx.setTransform(dpr * co * p.face, dpr * si * p.face, -dpr * si * br, dpr * co * br, dpr * x, dpr * by);
+  // В WebGL-движке героя рисуем на своём маленьком обычном холсте и отдаём видеокарте
+  // картинкой: рука с оружием меняется каждый кадр, а в ней градиенты и свечение
+  const x2 = ctx.isGL ? heroLayer() : ctx;
+  if (ctx.isGL) { x2.setTransform(1, 0, 0, 1, 0, 0); x2.globalAlpha = 1; x2.clearRect(0, 0, x2.canvas.width, x2.canvas.height); }
+  else ctx.globalAlpha = blink;
+  const ax = ctx.isGL ? HERO_L.ax : x, ay = ctx.isGL ? HERO_L.ay : by;
+  x2.setTransform(dpr * co * p.face, dpr * si * p.face, -dpr * si * br, dpr * co * br, dpr * ax, dpr * ay);
   // рука с оружием и тело рисуются в одних координатах: рукав за телом, оружие поверх
-  ctx.translate(0, -18);
+  x2.translate(0, -18);
   setGlowScale(dpr);
   const f = p.moving ? fr / 4 : 0;
-  const tip = drawHeroArm(ctx, G.hero, {
+  const tip = drawHeroArm(x2, G.hero, {
     atk: p.atk, t: now / 1000,
     st: p.moving ? Math.sin(f * TAU) : 0, bob: p.moving ? Math.abs(Math.cos(f * TAU)) * 1.4 : 0
   }, (c) => c.drawImage(img, -img.w / 2, -img.h / 2, img.w, img.h));
+  if (ctx.isGL) {
+    x2.canvas._glv = (x2.canvas._glv || 0) + 1;   // картинка обновилась — видеокарте надо взять новую
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = blink;
+    ctx.drawImage(x2.canvas, x - HERO_L.ax, by - HERO_L.ay, HERO_L.w, HERO_L.h);
+  }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
   if (L.glow) {
     const lx = tip.x, ly = tip.y - 18;

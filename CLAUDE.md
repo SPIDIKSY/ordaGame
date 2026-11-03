@@ -28,6 +28,12 @@
 - Игра: React + Vite, движок на canvas — `src/game/run/*` (логика), `src/game/render/*` (рисование).
 - Сервер (аккаунты, лидерборд, защита от читов): Node.js, `server/*`.
   На Netlify работает как функция `netlify/functions/api.mjs`, данные — в Netlify Blobs.
+- Отрисовка: по умолчанию WebGL (`src/game/gl/canvas2d.js`) — он понимает те же команды, что обычный
+  холст (drawImage, arc, ellipse, fill, stroke, fillText, setLineDash, linear/radial-градиенты, режимы
+  `source-over` и `lighter`), поэтому код в `src/game/render/*` один на оба движка. Запасной способ —
+  обычный холст (настройка «Чем рисовать», и сам, если WebGL не запустился). Если в `render/*` нужна новая
+  команда холста — допиши её и в `gl/canvas2d.js`. Герой (рука с оружием, свечение, градиенты) для WebGL
+  рисуется на своём маленьком обычном холсте (`render/actors.js`, `heroLayer`).
 - Урон оружия считается в одном месте: таблица `WINFO` и функция `weaponNums` в `src/game/data.js`.
   Урон везде показывается **за один удар, целым числом, без «×»**.
 

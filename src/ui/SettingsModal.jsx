@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Modal from './Modal.jsx';
-import { settings, setSetting, onSettings, QUALITY, FPS_LIMITS } from '../game/settings.js';
+import { settings, setSetting, onSettings, QUALITY, FPS_LIMITS, RENDERERS, renderInfo } from '../game/settings.js';
 
 // Настройки: графика, частота кадров, счётчик FPS. Сохраняются на этом устройстве
 export default function SettingsModal({ onClose }) {
@@ -17,6 +17,19 @@ export default function SettingsModal({ onClose }) {
           ))}
         </div>
         <p className="muted">{q.note}</p>
+      </div>
+      <div className="setting">
+        <h3>Чем рисовать</h3>
+        <div className="tabs">
+          {RENDERERS.map((r) => (
+            <button key={r.id} type="button" className={s.renderer === r.id ? 'on' : ''} onClick={() => setSetting('renderer', r.id)}>{r.name}</button>
+          ))}
+        </div>
+        <p className="muted">
+          {s.renderer === 'gl' && renderInfo.glFailed
+            ? 'Видеокарта на этом устройстве не запустилась — игра рисует обычным способом.'
+            : 'Видеокарта рисует быстрее, особенно в Firefox на ПК. Если картинка пропала или мигает — выбери «Обычный».'}
+        </p>
       </div>
       <div className="setting">
         <h3>Частота кадров</h3>

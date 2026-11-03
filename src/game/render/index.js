@@ -40,6 +40,7 @@ function draw(now) {
     drawAir(now, mx, my, BIOMES[i].air);
     drawTint(i, (i + BIOMES.length - 1) % BIOMES.length, k);
     if (vig) ctx.drawImage(vig, 0, 0, W, H);
+    if (ctx.flush) ctx.flush();
     return;
   }
   const g = G, p = g.p, sk = g.shake > 0 ? g.shake * 26 : 0;
@@ -53,7 +54,10 @@ function draw(now) {
   drawActors(now); lap(4);
   drawShots(now); lap(5);
   drawEffects(now); lap(6);
-  drawOverlay(now); lap(7);
+  drawOverlay(now);
+  // WebGL-движок копит треугольники пачками — отправляем последнюю пачку на видеокарту
+  if (ctx.flush) ctx.flush();
+  lap(7);
 }
 
 // Засекает время слоя i с прошлой отметки (без i — просто ставит отметку)
