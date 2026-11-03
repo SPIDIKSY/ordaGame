@@ -174,7 +174,7 @@ function textSprite(s, font, mode, style, lw, join, k) {
 
 /* ---------- сам движок ---------- */
 export function createGLContext(canvas, opts) {
-  const attrs = { alpha: false, antialias: !(opts && opts.noAA), premultipliedAlpha: true, preserveDrawingBuffer: false, stencil: false, depth: false, powerPreference: 'high-performance' };
+  const attrs = { alpha: false, antialias: !(opts && opts.noAA), premultipliedAlpha: true, preserveDrawingBuffer: false, stencil: true, depth: false, powerPreference: 'high-performance' };
   let gl = null;
   try { gl = canvas.getContext('webgl2', attrs) || canvas.getContext('webgl', attrs); } catch (_) { gl = null; }
   if (!gl) return null;
@@ -413,10 +413,15 @@ class GLCanvas {
 
   /* --- заливка --- */
   fillRect(x, y, w, h) { const keep = this.path, ks = this.sub; this.path = []; this.sub = null; this.rect(x, y, w, h); this.fill(); this.path = keep; this.sub = ks; }
-  fill() {
+  fill(rule) {
     if (this.lost) return;
     const al = this.globalAlpha, st = this.fillStyle;
     if (!(al > 0)) return;
+    // Несколько контуров в одной заливке (например, «экран с круглой дырой» за краем
+    // поляны) — нужна настоящая заливка с дырами по правилу холста
+    let subs = 0;
+    for (const sp of this.path) if (sp.pts.length >= 6) subs++;
+    if (subs > 1) { this.fillHoles(rule === 'evenodd'); return; }
     this.setBlend(this.globalCompositeOperation);
     const grad = st instanceof Gradient ? st : null, c = grad ? null : parseColor(st);
     if (c && !(c[3] > 0)) return;
@@ -445,6 +450,43 @@ class GLCanvas {
         }
       } else for (let i = 0; i < tris.length; i++) { const j = tris[i]; this.vtx(p[2 * j], p[2 * j + 1], uv, uv, colAt(p[2 * j], p[2 * j + 1])); }
     }
+  }
+
+  // Заливка с дырами «через трафарет»: сначала все контуры веером пишутся только
+  // в трафарет (каждый слой переворачивает чётность или считает обороты), потом
+  // прямоугольник вокруг фигуры красится там, где трафарет не ноль. Так
+  // получаются ровно те же дыры, что у обычного холста, при любых пересечениях
+  fillHoles(evenodd) {
+    const gl = this.gl, al = this.globalAlpha, st = this.fillStyle;
+    this.setBlend(this.globalCompositeOperation);
+    const grad = st instanceof Gradient ? st : null, c = grad ? (st.stops[0] ? st.stops[0][1] : [0, 0, 0, 1]) : parseColor(st);
+    if (!(c[3] > 0)) return;
+    const col = this.ck(packRGBA(c[0], c[1], c[2], c[3] * al)), uv = this.solidUV();
+    this.flush();
+    gl.enable(gl.STENCIL_TEST); gl.stencilMask(0xff); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.colorMask(false, false, false, false);
+    gl.stencilFunc(gl.ALWAYS, 0, 0xff);
+    if (evenodd) gl.stencilOp(gl.KEEP, gl.KEEP, gl.INVERT);
+    else { gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.KEEP, gl.INCR_WRAP); gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.KEEP, gl.DECR_WRAP); }
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const sp of this.path) {
+      const p = sp.pts, k = p.length >> 1;
+      if (k < 3) continue;
+      for (let i = 0; i < k; i++) { const x = p[2 * i], y = p[2 * i + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      for (let i = 1; i < k - 1; i++) {
+        this.room(3);
+        this.vtx(p[0], p[1], uv, uv, col); this.vtx(p[2 * i], p[2 * i + 1], uv, uv, col); this.vtx(p[2 * i + 2], p[2 * i + 3], uv, uv, col);
+      }
+    }
+    this.flush();
+    gl.colorMask(true, true, true, true);
+    gl.stencilFunc(gl.NOTEQUAL, 0, 0xff); gl.stencilOp(gl.ZERO, gl.ZERO, gl.ZERO);
+    if (x1 > x0 && y1 > y0) {
+      this.vtx(x0, y0, uv, uv, col); this.vtx(x1, y0, uv, uv, col); this.vtx(x0, y1, uv, uv, col);
+      this.vtx(x1, y0, uv, uv, col); this.vtx(x1, y1, uv, uv, col); this.vtx(x0, y1, uv, uv, col);
+    }
+    this.flush();
+    gl.disable(gl.STENCIL_TEST);
   }
 
   /* --- обводка --- */
