@@ -14,8 +14,8 @@ import { G } from './state.js';
 const weaponSlot = (id) => {
   const n = weaponNums(id, G.w[id], G.p);
   return { key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name,
-    sub: n ? n.hit + ' · ' + n.dps + '/с' : '',
-    title: WDEF[id].name + ' · ур. ' + G.w[id] + (n ? ' · ' + n.hit + ' урона за удар, ' + n.dps + ' в секунду по одной цели' : '') + '. ' + WDEF[id].desc };
+    sub: n ? 'урон ' + n.hit : '',
+    title: WDEF[id].name + ' · ур. ' + G.w[id] + (n ? ' · ' + n.hit + ' урона за удар' : '') + '. ' + WDEF[id].desc };
 };
 const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] + ': ' + effText(scaleEff(RDEF[id].eff, G.r[id])) + '. ' + effHint(RDEF[id].eff) });
 const itemSlot = (id) => {
@@ -31,17 +31,18 @@ export function invSnapshot() {
 }
 // Что означают цифры в паузе (показывается при наведении)
 const UNIT = {
-  dmg: 'Во сколько раз сильнее бьёт всё оружие, чем в начале. Урон каждого оружия — под его значком.',
+  dmg: 'Урон одного удара главного оружия — это число вылетает над врагом.',
+  critDmg: 'Урон одного крита главным оружием.',
   speed: 'Пикселей в секунду.',
   magnet: 'Радиус, с которого опыт сам летит к герою, в пикселях.',
-  haste: 'Во сколько раз чаще бьёт оружие.',
-  area: 'Во сколько раз больше зона атак.',
-  pspeed: 'Во сколько раз быстрее летят снаряды.',
-  range: 'Во сколько раз дальше бьёт.',
-  dur: 'Во сколько раз дольше держатся эффекты.',
-  xp: 'Во сколько раз больше опыта.',
-  luck: 'Во сколько раз чаще выпадают редкие награды.',
-  critDmg: 'Во сколько раз сильнее крит, чем обычный удар.',
+  regen: 'Сколько здоровья восстанавливается за минуту.',
+  haste: '100 — как в начале, 120 — бьёт на 20% чаще.',
+  area: '100 — как в начале, 120 — зона атак на 20% больше.',
+  pspeed: '100 — как в начале, 120 — снаряды летят на 20% быстрее.',
+  range: '100 — как в начале, 120 — бьёт на 20% дальше.',
+  dur: '100 — как в начале, 120 — эффекты держатся на 20% дольше.',
+  xp: '100 — как в начале, 120 — опыта на 20% больше.',
+  luck: '100 — как в начале, 120 — редкие награды выпадают чаще.',
   vamp: 'Здоровья за каждое убийство.'
 };
 export function pauseSnapshot() {
@@ -52,24 +53,29 @@ export function pauseSnapshot() {
   const dec1 = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
   // Настоящие значения, а не проценты бонусов: урон удара, скорость в пикселях,
   // множители вида «×1,2». Проценты — только у шансов (крит, уклонение)
-  const x = (v) => '×' + String(Math.round(v * 100) / 100).replace('.', ',');
+  // Только целые числа: урон — за один удар главного оружия, остальное — по шкале,
+  // где 100 = как в начале (120 — на 20% больше). Проценты остались только у шансов.
+  const n100 = (v) => String(Math.round(v * 100));
+  const mainId = G.wOrder.includes(G.heroWeapon) ? G.heroWeapon : G.wOrder[0];
+  const main = mainId ? weaponNums(mainId, G.w[mainId], p) : null;
+  const mainHit = main ? main.hit : Math.round(p.dmg);
   const stats = [
     { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
-    { id: 'dmg', label: 'Сила', value: x(p.dmg / 14), tone: tone(p.b.dmg) },
-    { id: 'haste', label: 'Скорость атаки', value: x(1 / p.cdMul), tone: tone(p.b.haste) },
-    { id: 'area', label: 'Площадь', value: x(p.area), tone: tone(p.area - 1) },
+    { id: 'dmg', label: 'Урон', value: String(mainHit), tone: tone(p.b.dmg) },
+    { id: 'haste', label: 'Скорость атаки', value: n100(1 / p.cdMul), tone: tone(p.b.haste) },
+    { id: 'area', label: 'Площадь', value: n100(p.area), tone: tone(p.area - 1) },
     { id: 'amount', label: 'Снаряды', value: '+' + p.amount, tone: tone(p.amount) },
-    { id: 'pspeed', label: 'Скорость снарядов', value: x(p.pspeedMul), tone: tone(p.b.pspeed) },
-    { id: 'range', label: 'Дальность', value: x(p.rangeMul), tone: tone(p.b.range) },
-    { id: 'dur', label: 'Длительность', value: x(p.dur), tone: tone(p.dur - 1) },
+    { id: 'pspeed', label: 'Скорость снарядов', value: n100(p.pspeedMul), tone: tone(p.b.pspeed) },
+    { id: 'range', label: 'Дальность', value: n100(p.rangeMul), tone: tone(p.b.range) },
+    { id: 'dur', label: 'Длительность', value: n100(p.dur), tone: tone(p.dur - 1) },
     { id: 'armor', label: 'Броня', value: String(p.armor), tone: tone(p.armor) },
-    { id: 'regen', label: 'Регенерация', value: dec1(p.regen) + '/с', tone: tone(p.regen) },
+    { id: 'regen', label: 'Регенерация', value: Math.round(p.regen * 60) + '/мин', tone: tone(p.regen) },
     { id: 'speed', label: 'Скорость бега', value: String(Math.round(p.speed)), tone: tone(p.b.speed) },
     { id: 'magnet', label: 'Притяжение', value: String(Math.round(p.magnet)), tone: tone(p.b.magnet) },
     { id: 'crit', label: 'Шанс крита', value: pc(p.crit) + '%', tone: tone(p.crit - 0.05) },
-    { id: 'critDmg', label: 'Сила крита', value: x(p.critDmg), tone: tone(p.critDmg - 2) },
-    { id: 'xp', label: 'Опыт', value: x(p.xpMul), tone: tone(p.xpMul - 1) },
-    { id: 'luck', label: 'Удача', value: x(1 + p.luck), tone: tone(p.luck) },
+    { id: 'critDmg', label: 'Урон крита', value: String(Math.round(mainHit * p.critDmg)), tone: tone(p.critDmg - 2) },
+    { id: 'xp', label: 'Опыт', value: n100(p.xpMul), tone: tone(p.xpMul - 1) },
+    { id: 'luck', label: 'Удача', value: n100(1 + p.luck), tone: tone(p.luck) },
     { id: 'vamp', label: 'Вампиризм', value: '+' + dec1(p.vamp), tone: tone(p.vamp) },
     { id: 'dodge', label: 'Уклонение', value: pc(Math.min(0.4, p.dodge)) + '%', tone: tone(p.dodge) },
     { id: 'thorns', label: 'Шипы', value: String(Math.round(p.thorns)), tone: tone(p.thorns) },
