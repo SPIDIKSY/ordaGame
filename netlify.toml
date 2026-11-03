@@ -1,7 +1,7 @@
-# Настройки для Netlify: как собирать игру и где лежит API
+# Настройки для Netlify. Игра переехала на Amvera — здесь осталась только страница перехода (папка moved).
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "echo moved"
+  publish = "moved"
   # Экономия кредитов: каждая выкладка сайта стоит 15 кредитов из 300 в месяц.
   # Сайт собирается, только если в описании последнего изменения есть метка [deploy].
   # Без метки Netlify сборку пропускает — это бесплатно. Предпросмотры (не main) собираются как обычно.
@@ -10,6 +10,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Любой старый адрес показывает страницу перехода
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 [functions]
   directory = "netlify/functions"
