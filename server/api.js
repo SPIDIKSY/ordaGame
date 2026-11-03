@@ -7,6 +7,7 @@
    ===================================================== */
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 import { parseReport, checkReport, beatTooSoon, scoreOf, SCORE } from './anticheat.js';
+import { badNick } from './nickfilter.js';
 
 export const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat'];
 const SESSION_DAYS = 30;
@@ -32,7 +33,7 @@ export function nickKey(nick) {
 export function checkNickFormat(nick) {
   if (!NICK_RE.test(nick)) return 'Ник: 3–16 символов — буквы, цифры, пробел, _ и -';
   if (nickKey(nick).length < 3) return 'Ник слишком короткий';
-  return null;
+  return badNick(nick);
 }
 
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -62,7 +63,30 @@ export function createHandler({ kv, now = () => Date.now() }) {
     const s = await kv.get('sess/' + sha(token));
     if (!s || s.value.expires < now()) return null;
     const u = await kv.get('user/' + s.value.login);
-    return u ? { user: u.value, tokenKey: 'sess/' + sha(token) } : null;
+    if (!u) return null;
+    // старый запрещённый ник (заведён до проверки) — меняем на случайный
+    if (badNick(u.value.nick)) await renameUser(u.value);
+    return { user: u.value, tokenKey: 'sess/' + sha(token) };
+  }
+
+  /* ---------- замена запрещённых ников на случайные ---------- */
+  // Новый ник для игрока выбирается один раз и запоминается (renamed/<id>),
+  // чтобы в аккаунте и в лидерборде оказался один и тот же
+  async function replacementNick(id) {
+    const saved = await kv.get('renamed/' + id);
+    if (saved) return saved.value.nick;
+    for (let i = 0; i < 20; i++) {
+      const nick = 'Игрок ' + (1000 + Math.floor(Math.random() * 9000));
+      if (await kv.put('nick/' + sha(nickKey(nick)).slice(0, 40), { renamed: id }, { ifNew: true })) {
+        if (await kv.put('renamed/' + id, { nick }, { ifNew: true })) return nick;
+        return (await kv.get('renamed/' + id)).value.nick;
+      }
+    }
+    return 'Игрок ' + id.slice(0, 6);
+  }
+  async function renameUser(user) {
+    user.nick = await replacementNick(user.id);
+    await kv.put('user/' + user.login.toLowerCase(), user);
   }
 
   // Владелец забега: аккаунт (по токену входа) или гость (по секрету забега в заголовке x-run-token)
@@ -116,7 +140,18 @@ export function createHandler({ kv, now = () => Date.now() }) {
     const heroPlace = rowsOf(board, run.hero).findIndex((x) => x.userId === user.id) + 1;
     return { place: place || null, heroPlace: heroPlace || null };
   }
-  async function readBoard() { const b = await kv.get('board'); return b ? b.value : { users: {} }; }
+  async function readBoard() {
+    const b = await kv.get('board');
+    if (!b) return { users: {} };
+    const board = b.value;
+    let changed = false;
+    for (const id in board.users) {
+      if (badNick(board.users[id].nick)) { board.users[id].nick = await replacementNick(id); changed = true; }
+    }
+    // сохраняем исправленные ники; если таблицу как раз обновили — поправим в следующий раз
+    if (changed) await kv.put('board', board, { ifMatch: b.etag });
+    return board;
+  }
 
   /* ---------- маршруты ---------- */
   const routes = {
@@ -132,14 +167,15 @@ export function createHandler({ kv, now = () => Date.now() }) {
     },
 
     'POST register': async (req, url, body, ip) => {
-      if (await limited('reg:' + ip, 5, 3600000)) return json(429, { error: 'Слишком много регистраций, попробуй позже' });
       const login = String(body.login || '').trim();
       const password = String(body.password || '');
       const nick = cleanNick(body.nick || login);
+      // сначала проверяем ввод: ошибка в нике или пароле не тратит лимит регистраций
       if (!LOGIN_RE.test(login)) return json(400, { error: 'Логин: 3–20 символов, латинские буквы, цифры и _' });
       if (password.length < 6 || password.length > 72) return json(400, { error: 'Пароль: от 6 до 72 символов' });
       const bad = checkNickFormat(nick);
       if (bad) return json(400, { error: bad });
+      if (await limited('reg:' + ip, 5, 3600000)) return json(429, { error: 'Слишком много регистраций, попробуй позже' });
       if (await kv.get('user/' + login.toLowerCase())) return json(409, { error: 'Такой логин уже занят' });
       // занимаем ник атомарно: если кто-то успел раньше — запись не пройдёт
       const nk = 'nick/' + sha(nickKey(nick)).slice(0, 40);

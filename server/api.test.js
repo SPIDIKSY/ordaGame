@@ -34,7 +34,7 @@ function setup(kv) {
     }), '1.2.3.4');
     return { status: res.status, body: await res.json() };
   };
-  return { call, tick: (sec) => { clock += sec * 1000; } };
+  return { call, kv, tick: (sec) => { clock += sec * 1000; } };
 }
 
 async function playFair(s, token, hero, seconds, killsPerSec = 3) {
@@ -199,5 +199,34 @@ for (const [name, mk] of kvs.list) {
     const tok = (await s.call('POST', 'register', { login: 'late', password: '123456' })).body.token;
     s.tick(31 * 60);
     assert.equal((await s.call('POST', 'runs/' + r.runId + '/claim', null, tok, r.runToken)).status, 410);
+  });
+}
+
+for (const [name, mk] of kvs.list) {
+  test(name + ': запрещённые ники не пройти в любом написании', async () => {
+    const s = setup(mk());
+    for (const nick of ['admin', 'Админ', 'Аdmіn', 'a d m i n', 'adm1n', 'Admin228', 'Модератор', 'xyй', 'Сука']) {
+      const r = await s.call('POST', 'register', { login: 'u' + Math.random().toString(36).slice(2, 9), password: '123456', nick });
+      assert.equal(r.status, 400, nick + ' должен быть запрещён');
+      assert.equal((await s.call('GET', 'check-nick?nick=' + encodeURIComponent(nick))).body.ok, false);
+    }
+    assert.equal((await s.call('POST', 'register', { login: 'normal', password: '123456', nick: 'Влад Спидиди' })).status, 200);
+  });
+
+  test(name + ': старый запрещённый ник заменяется на случайный и в аккаунте, и в лидерборде', async () => {
+    const s = setup(mk());
+    const reg = (await s.call('POST', 'register', { login: 'oldbad', password: '123456', nick: 'Временный' })).body;
+    // забег, чтобы игрок попал в лидерборд
+    const run = (await s.call('POST', 'runs', { hero: 'mage' }, reg.token)).body.runId;
+    s.tick(20);
+    assert.equal((await s.call('POST', 'runs/' + run + '/finish', { time: 19, kills: 30, level: 2, bosses: 0 }, reg.token)).status, 200);
+    // как будто ник «admin» завели раньше, до появления проверки
+    const u = await s.kv.get('user/oldbad'); await s.kv.put('user/oldbad', { ...u.value, nick: 'admin' });
+    const b = await s.kv.get('board'); b.value.users[reg.user.id].nick = 'admin'; await s.kv.put('board', b.value);
+    const rows = (await s.call('GET', 'leaderboard')).body.rows;
+    assert.match(rows[0].nick, /^Игрок \d{4}$/);
+    const me = (await s.call('GET', 'me', null, reg.token)).body.user;
+    assert.equal(me.nick, rows[0].nick, 'в аккаунте тот же новый ник');
+    assert.equal((await s.call('GET', 'leaderboard')).body.rows[0].time, 19, 'рекорд сохранился');
   });
 }
