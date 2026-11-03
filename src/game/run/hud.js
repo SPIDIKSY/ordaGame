@@ -3,14 +3,20 @@
    Снимки снаряжения для HUD, паузы и экрана смерти.
    В React отправляем только то, что поменялось.
    ===================================================== */
-import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt } from '../data.js';
+import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt, weaponNums } from '../data.js';
 import { PUS } from '../sprites/world.js';
 import { hud } from '../store.js';
 import { G } from './state.js';
 
 /* --- снаряжение: оружие, реликвии и предметы ---
    Один источник для паузы и итогов забега: значок, цвет, уровень и название */
-const weaponSlot = (id) => ({ key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name, title: WDEF[id].name + ' · ур. ' + G.w[id] + '. ' + WDEF[id].desc });
+// У оружия — настоящий урон с учётом всех бонусов: за удар и в секунду по одной цели
+const weaponSlot = (id) => {
+  const n = weaponNums(id, G.w[id], G.p);
+  return { key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name,
+    sub: n ? n.hit + ' · ' + n.dps + '/с' : '',
+    title: WDEF[id].name + ' · ур. ' + G.w[id] + (n ? ' · ' + n.hit + ' урона за удар, ' + n.dps + ' в секунду по одной цели' : '') + '. ' + WDEF[id].desc };
+};
 const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] + ': ' + effText(scaleEff(RDEF[id].eff, G.r[id])) + '. ' + effHint(RDEF[id].eff) });
 const itemSlot = (id) => {
   const it = ITEMS.find((q) => q.id === id), k = G.inv[id];
@@ -25,7 +31,7 @@ export function invSnapshot() {
 }
 // Что означают цифры в паузе (показывается при наведении)
 const UNIT = {
-  dmg: 'Урон одного обычного удара (у героя без бонусов — 14).',
+  dmg: 'Во сколько раз сильнее бьёт всё оружие, чем в начале. Урон каждого оружия — под его значком.',
   speed: 'Пикселей в секунду.',
   magnet: 'Радиус, с которого опыт сам летит к герою, в пикселях.',
   haste: 'Во сколько раз чаще бьёт оружие.',
@@ -49,7 +55,7 @@ export function pauseSnapshot() {
   const x = (v) => '×' + String(Math.round(v * 100) / 100).replace('.', ',');
   const stats = [
     { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
-    { id: 'dmg', label: 'Урон удара', value: String(Math.round(p.dmg)), tone: tone(p.b.dmg) },
+    { id: 'dmg', label: 'Сила', value: x(p.dmg / 14), tone: tone(p.b.dmg) },
     { id: 'haste', label: 'Скорость атаки', value: x(1 / p.cdMul), tone: tone(p.b.haste) },
     { id: 'area', label: 'Площадь', value: x(p.area), tone: tone(p.area - 1) },
     { id: 'amount', label: 'Снаряды', value: '+' + p.amount, tone: tone(p.amount) },

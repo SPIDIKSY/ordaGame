@@ -22,6 +22,7 @@ export default function PauseScreen({ sections: d }) {
                     <Icon name={s.icon} />{s.badge ? <b>{s.badge}</b> : null}
                   </span>
                   <span className="gear-name">{s.name}</span>
+                  {s.sub && <span className="gear-dmg" title="Урон за удар · урон в секунду по одной цели">{s.sub}</span>}
                 </div>
               ))}
             </div>

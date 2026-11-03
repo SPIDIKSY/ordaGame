@@ -4,7 +4,7 @@
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
 import { G } from './state.js';
-import { topK } from '../data.js';
+import { topK, WINFO } from '../data.js';
 import { heroAttack } from './player.js';
 import { burst, addFx } from './fx.js';
 import { hitEnemy } from './combat.js';
@@ -29,16 +29,16 @@ function zoneTrail(dt, g, p, A) {
       g.wt.trail = 0.16;
       const life = (1.6 + (l >= 2 ? 0.6 : 0) + (l >= 6 ? 0.6 : 0) + (l >= 9 ? 0.6 : 0)) * p.dur;
       g.puddles.push({ kind: 'fire', x: p.x + rnd(-4, 4), y: p.y + 12, r: (24 + (l >= 4 ? 8 : 0) + (l >= 7 ? 6 : 0) + (l >= 8 ? 6 : 0) + A * 4) * p.area,
-        life, T: life, tick: 0, dmg: p.dmg * (0.35 + 0.12 * l + (l >= 3 ? 0.1 : 0)) * topK(l) });
+        life, T: life, tick: 0, dmg: p.dmg * WINFO.trail.hit(l) * topK(l) });
     }
   }
 }
 // круговые лезвия
 function zoneBlades(dt, g, p, A) {
   if (g.w.blades) {
-    const l = g.w.blades, n = [1, 2, 2, 3, 3, 4, 5, 5, 6, 6][l - 1] + A, R = 54 + 10 * p.area;
-    const d = p.dmg * [0.9, 0.9, 1.1, 1.1, 1.35, 1.35, 1.65, 1.9, 1.9, 1.9][l - 1] * topK(l);
-    g.bladeN = n; g.bladeR = R; p.bladeA += (3.2 + 0.15 * l) * dt;
+    const l = g.w.blades, n = WINFO.blades.n(l) + A, R = 54 + 10 * p.area;
+    const d = p.dmg * WINFO.blades.hit(l) * topK(l);
+    g.bladeN = n; g.bladeR = R; p.bladeA += WINFO.blades.spin(l) * dt;
     for (let i = 0; i < n; i++) {
       const a = p.bladeA + i * TAU / n, bx = p.x + Math.cos(a) * R, by = p.y + Math.sin(a) * R;
       for (let j = 0; j < g.enemies.length; j++) {
@@ -56,7 +56,7 @@ function zoneAura(dt, g, p, A) {
     if (g.wt.aura <= 0) {
       g.wt.aura = 0.35;
       addFx({ type: 'pulse', life: 0.5, T: 0.5 });
-      const R = auraR(), d = p.dmg * (0.3 + 0.15 * g.w.aura) * topK(g.w.aura);
+      const R = auraR(), d = p.dmg * WINFO.aura.hit(g.w.aura) * topK(g.w.aura);
       let touched = 0;
       for (let i = 0; i < g.enemies.length; i++) {
         const e = g.enemies[i]; if (e.dead) continue;
