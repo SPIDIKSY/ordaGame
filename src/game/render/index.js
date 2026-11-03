@@ -15,6 +15,7 @@ import { drawActors } from './actors.js';
 import { drawShots } from './shots.js';
 import { drawEffects } from './effects.js';
 import { drawOverlay, vig } from './overlay.js';
+import { layerNow } from '../perf.js';
 export { resizeRender } from './overlay.js';
 
 export function render(o) {
@@ -31,6 +32,7 @@ function draw(now) {
   // накапливается до сплошной заливки и экран уже не восстановить.
   ctx.clearRect(0, 0, W, H);
   if (state === 'menu' || !G) {
+    layerNow.fill(0);
     // в меню местности сменяют друг друга
     const per = 9000, i = Math.floor(now / per) % BIOMES.length, k = Math.min(1, (now % per) / 1600);
     const mx = now * 0.02, my = now * 0.012;
@@ -43,12 +45,21 @@ function draw(now) {
   const g = G, p = g.p, sk = g.shake > 0 ? g.shake * 26 : 0;
   const cx = p.x - hx + rnd(-sk, sk), cy = p.y - hy + rnd(-sk, sk);
   setCamera(cx, cy);
-  drawWorld(cx, cy, g.biome, g.biomePrev, g.biomeK);
-  drawArena();
-  drawFloor(now);
-  drawPickups(now);
-  drawActors(now);
-  drawShots(now);
-  drawEffects(now);
-  drawOverlay(now);
+  lap(); // порядок слоёв — как в LAYERS из perf.js
+  drawWorld(cx, cy, g.biome, g.biomePrev, g.biomeK); lap(0);
+  drawArena(); lap(1);
+  drawFloor(now); lap(2);
+  drawPickups(now); lap(3);
+  drawActors(now); lap(4);
+  drawShots(now); lap(5);
+  drawEffects(now); lap(6);
+  drawOverlay(now); lap(7);
+}
+
+// Засекает время слоя i с прошлой отметки (без i — просто ставит отметку)
+let lapT = 0;
+function lap(i) {
+  const t = performance.now();
+  if (i !== undefined) layerNow[i] = t - lapT;
+  lapT = t;
 }
