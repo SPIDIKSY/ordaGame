@@ -29,7 +29,7 @@ export default function PauseScreen({ sections: d }) {
         ))}
         <div className="statgrid">
           {d.stats.map((s) => (
-            <div key={s.id} className={'stat ' + s.tone}><span>{s.label}</span><b>{s.value}</b></div>
+            <div key={s.id} className={'stat ' + s.tone} title={s.hint}><span>{s.label}</span><b>{s.value}</b></div>
           ))}
         </div>
         <button id="resumeBtn" className="btn" type="button" onClick={game.resume}>Продолжить</button>

@@ -15,7 +15,7 @@ import SettingsModal from './SettingsModal.jsx';
 // Полоски «здоровье» и «скорость»: сравнение героев между собой.
 // Самый слабый получает четверть полоски, а не пустую — пустая читалась бы как «ноль».
 const range = (key) => { const v = HEROES.map((q) => q[key]); return [Math.min(...v), Math.max(...v)]; };
-const RANGES = { hp: range('hp'), speed: range('speed') };
+const RANGES = { hp: range('hp'), speed: range('speed'), atk: range('atk') };
 const barK = (key, v) => { const [a, b] = RANGES[key]; return 0.25 + 0.75 * (b > a ? (v - a) / (b - a) : 1); };
 
 // Живой герой на постаменте: дышит и показывает атаку оружием.
@@ -102,6 +102,7 @@ export default function StartScreen({ heroId, best, account }) {
             <div className="hbars">
               <span>Здоровье</span><i style={{ '--k': barK('hp', h.hp) }} /><b>{h.hp}</b>
               <span>Скорость</span><i style={{ '--k': barK('speed', h.speed) }} /><b>{h.speed}</b>
+              <span title="Урон в секунду по одной цели, когда все удары попали. Без критов и бонусов">Атака</span><i style={{ '--k': barK('atk', h.atk) }} /><b>{h.atk}/с</b>
             </div>
             <div className="hero-weapon">
               <span className="slot"><Icon name={Wd.icon} /></span>

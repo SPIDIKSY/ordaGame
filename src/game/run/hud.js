@@ -3,18 +3,18 @@
    Снимки снаряжения для HUD, паузы и экрана смерти.
    В React отправляем только то, что поменялось.
    ===================================================== */
-import { RAR, effText, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt } from '../data.js';
+import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt } from '../data.js';
 import { PUS } from '../sprites/world.js';
 import { hud } from '../store.js';
 import { G } from './state.js';
 
 /* --- снаряжение: оружие, реликвии и предметы ---
    Один источник для паузы и итогов забега: значок, цвет, уровень и название */
-const weaponSlot = (id) => ({ key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name, title: WDEF[id].name + ' · ур. ' + G.w[id] });
-const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] });
+const weaponSlot = (id) => ({ key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name, title: WDEF[id].name + ' · ур. ' + G.w[id] + '. ' + WDEF[id].desc });
+const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] + ': ' + effText(scaleEff(RDEF[id].eff, G.r[id])) + '. ' + effHint(RDEF[id].eff) });
 const itemSlot = (id) => {
   const it = ITEMS.find((q) => q.id === id), k = G.inv[id];
-  return { key: 'i:' + id, icon: it.icon, col: RAR[k.best].col, badge: k.count > 1 ? '×' + k.count : '', name: it.name, title: it.name + ': ' + (it.desc || effText(k.total)) };
+  return { key: 'i:' + id, icon: it.icon, col: RAR[k.best].col, badge: k.count > 1 ? '×' + k.count : '', name: it.name, title: it.name + ': ' + (it.desc || effText(k.total) + '. ' + effHint(it.eff)) };
 };
 // Для итогов забега: пустые места показываем, чтобы было видно, сколько слотов осталось
 export function invSnapshot() {
@@ -23,34 +23,52 @@ export function invSnapshot() {
   for (let i = 0; i < MAX_RELICS; i++) relics.push(G.rOrder[i] ? relicSlot(G.rOrder[i]) : null);
   return { weapons, relics, items: G.invOrder.map(itemSlot) };
 }
+// Что означают цифры в паузе (показывается при наведении)
+const UNIT = {
+  dmg: 'Урон одного обычного удара (у героя без бонусов — 14).',
+  speed: 'Пикселей в секунду.',
+  magnet: 'Радиус, с которого опыт сам летит к герою, в пикселях.',
+  haste: 'Во сколько раз чаще бьёт оружие.',
+  area: 'Во сколько раз больше зона атак.',
+  pspeed: 'Во сколько раз быстрее летят снаряды.',
+  range: 'Во сколько раз дальше бьёт.',
+  dur: 'Во сколько раз дольше держатся эффекты.',
+  xp: 'Во сколько раз больше опыта.',
+  luck: 'Во сколько раз чаще выпадают редкие награды.',
+  critDmg: 'Во сколько раз сильнее крит, чем обычный удар.',
+  vamp: 'Здоровья за каждое убийство.'
+};
 export function pauseSnapshot() {
   const p = G.p, H0 = HDEF[G.hero] || HEROES[0];
   const pc = (v) => Math.round(v * 100);
   const mod = (v) => (Math.abs(v) < 0.005 ? '0%' : (v > 0 ? '+' : '−') + Math.abs(pc(v)) + '%');
   const tone = (v) => (v > 0.001 ? 'up' : v < -0.001 ? 'down' : '');
   const dec1 = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+  // Настоящие значения, а не проценты бонусов: урон удара, скорость в пикселях,
+  // множители вида «×1,2». Проценты — только у шансов (крит, уклонение)
+  const x = (v) => '×' + String(Math.round(v * 100) / 100).replace('.', ',');
   const stats = [
     { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
-    { id: 'dmg', label: 'Урон', value: mod(p.b.dmg), tone: tone(p.b.dmg) },
-    { id: 'haste', label: 'Скорость атаки', value: mod(p.b.haste), tone: tone(p.b.haste) },
-    { id: 'area', label: 'Площадь', value: mod(p.area - 1), tone: tone(p.area - 1) },
+    { id: 'dmg', label: 'Урон удара', value: String(Math.round(p.dmg)), tone: tone(p.b.dmg) },
+    { id: 'haste', label: 'Скорость атаки', value: x(1 / p.cdMul), tone: tone(p.b.haste) },
+    { id: 'area', label: 'Площадь', value: x(p.area), tone: tone(p.area - 1) },
     { id: 'amount', label: 'Снаряды', value: '+' + p.amount, tone: tone(p.amount) },
-    { id: 'pspeed', label: 'Скорость снарядов', value: mod(p.b.pspeed), tone: tone(p.b.pspeed) },
-    { id: 'range', label: 'Дальность', value: mod(p.b.range), tone: tone(p.b.range) },
-    { id: 'dur', label: 'Длительность', value: mod(p.dur - 1), tone: tone(p.dur - 1) },
+    { id: 'pspeed', label: 'Скорость снарядов', value: x(p.pspeedMul), tone: tone(p.b.pspeed) },
+    { id: 'range', label: 'Дальность', value: x(p.rangeMul), tone: tone(p.b.range) },
+    { id: 'dur', label: 'Длительность', value: x(p.dur), tone: tone(p.dur - 1) },
     { id: 'armor', label: 'Броня', value: String(p.armor), tone: tone(p.armor) },
     { id: 'regen', label: 'Регенерация', value: dec1(p.regen) + '/с', tone: tone(p.regen) },
-    { id: 'speed', label: 'Скорость бега', value: mod(p.b.speed), tone: tone(p.b.speed) },
-    { id: 'magnet', label: 'Притяжение', value: mod(p.b.magnet), tone: tone(p.b.magnet) },
+    { id: 'speed', label: 'Скорость бега', value: String(Math.round(p.speed)), tone: tone(p.b.speed) },
+    { id: 'magnet', label: 'Притяжение', value: String(Math.round(p.magnet)), tone: tone(p.b.magnet) },
     { id: 'crit', label: 'Шанс крита', value: pc(p.crit) + '%', tone: tone(p.crit - 0.05) },
-    { id: 'critDmg', label: 'Сила крита', value: '×' + dec1(p.critDmg), tone: tone(p.critDmg - 2) },
-    { id: 'xp', label: 'Опыт', value: mod(p.xpMul - 1), tone: tone(p.xpMul - 1) },
-    { id: 'luck', label: 'Удача', value: mod(p.luck), tone: tone(p.luck) },
-    { id: 'vamp', label: 'Вампиризм', value: dec1(p.vamp), tone: tone(p.vamp) },
+    { id: 'critDmg', label: 'Сила крита', value: x(p.critDmg), tone: tone(p.critDmg - 2) },
+    { id: 'xp', label: 'Опыт', value: x(p.xpMul), tone: tone(p.xpMul - 1) },
+    { id: 'luck', label: 'Удача', value: x(1 + p.luck), tone: tone(p.luck) },
+    { id: 'vamp', label: 'Вампиризм', value: '+' + dec1(p.vamp), tone: tone(p.vamp) },
     { id: 'dodge', label: 'Уклонение', value: pc(Math.min(0.4, p.dodge)) + '%', tone: tone(p.dodge) },
     { id: 'thorns', label: 'Шипы', value: String(Math.round(p.thorns)), tone: tone(p.thorns) },
     { id: 'revive', label: 'Воскрешения', value: String(p.revive), tone: tone(p.revive) }
-  ];
+  ].map((s) => ({ ...s, hint: (UNIT[s.id] ? UNIT[s.id] + ' ' : '') + EFX[s.id].h[0].toUpperCase() + EFX[s.id].h.slice(1) + '.' }));
   // Снаряжение теперь видно только здесь: на игровом экране оно закрывало пол-обзора
   const gear = [
     { id: 'weapons', title: 'Оружие', max: MAX_WEAPONS, slots: G.wOrder.map(weaponSlot) },

@@ -69,7 +69,7 @@ export const SOFT = {
 };
 
 export const GLOW = {
-  amber: glowSprite('#ffb02e', 24), gold: glowSprite('#ffd56e', 32), cyan: glowSprite('#7fdcff', 24),
+  amber: glowSprite('#ffb02e', 24), white: glowSprite('#ffffff', 32), gold: glowSprite('#ffd56e', 32), cyan: glowSprite('#7fdcff', 24),
   blue: glowSprite('#5ab8ff', 16), green: glowSprite('#4fe08a', 16), red: glowSprite('#ff4a6a', 16), orange: glowSprite('#ff7a2e', 32)
 };
 
@@ -246,8 +246,8 @@ export function paintChest(canvas, open, cssW, cssH) {
 // Семечко для оружия «Семя»
 export const SEED = mk(10, 14, (x) => {
   x.beginPath(); x.moveTo(0, -6); x.bezierCurveTo(3.4, -4, 3.6, 2, 2.6, 4.6); x.quadraticCurveTo(0, 6.6, -2.6, 4.6); x.bezierCurveTo(-3.6, 2, -3.4, -4, 0, -6); x.closePath();
-  x.fillStyle = lg(x, -3, 0, 3, 0, [[0, '#3a2a1e'], [0.5, '#1a120c'], [1, '#3a2a1e']]); x.fill();
-  x.strokeStyle = '#0c0806'; x.lineWidth = 0.6; x.stroke();
-  x.strokeStyle = 'rgba(240,230,210,.85)'; x.lineWidth = 0.7;
+  x.fillStyle = lg(x, -3, 0, 3, 0, [[0, '#c9ccd2'], [0.5, '#ffffff'], [1, '#c9ccd2']]); x.fill();
+  x.strokeStyle = '#7d828c'; x.lineWidth = 0.6; x.stroke();
+  x.strokeStyle = 'rgba(70,75,85,.75)'; x.lineWidth = 0.7;
   line(x, 0, -4.6, 0, 4.4); line(x, -1.6, -2.6, -1.8, 3.6); line(x, 1.6, -2.6, 1.8, 3.6);
 });

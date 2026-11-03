@@ -42,6 +42,7 @@ export default function LevelUpScreen({ choices, rerolls }) {
                 <span className="name">{c.name}</span>
                 {c.pips && <Pips now={c.pips[0]} max={c.pips[1]} />}
                 <span className="desc">{c.desc}</span>
+                {c.hint && <span className="hint">{c.hint}</span>}
               </span>
             </button>
           ))}
