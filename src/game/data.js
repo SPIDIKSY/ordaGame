@@ -113,6 +113,45 @@ export const ITEMS = [
 // Поменяешь формулу оружия — поправь и текст. На 10 уровне любое оружие бьёт на 25% сильнее (topK).
 export const MAX_WEAPONS = 5, WMAX = 10;
 export const topK = (l) => (l >= WMAX ? 1.25 : 1);
+
+/* --- Сколько бьёт каждое оружие ---
+   hit — множитель урона за удар (от «силы» героя: 14 в начале),
+   cd — перезарядка в секундах, per — сколько ударов за раз приходится по одной цели,
+   tick — для луж и полей: как часто они жгут, spin/n — для круговых лезвий.
+   Этой же таблицей пользуется сам бой (run/weapons.js, run/zones.js), поэтому
+   цифры на карточке героя и в паузе всегда совпадают с теми, что вылетают над врагами. */
+const ARR = (a) => (l) => a[Math.min(a.length, l) - 1];
+export const WINFO = {
+  staff:    { hit: (l) => (l >= 3 ? 1.3 : 1) * (l >= 8 ? 1.25 : 1), cd: (l) => 0.55 * (l >= 6 ? 0.8 : 1), per: (l, A) => 1 + (l >= 2) + (l >= 5) + (l >= 7) + (l >= 9) + A },
+  nova:     { hit: (l) => 1.5 + 0.55 * l, cd: (l) => Math.max(2, 4.4 - 0.4 * l) },
+  chain:    { hit: (l) => 1.45 + 0.4 * l, cd: (l) => Math.max(0.8, 1.9 - 0.16 * (l - 1)) },
+  meteor:   { hit: (l) => 3 + l, cd: (l) => Math.max(1.6, 3.6 - 0.3 * l) },
+  frost:    { hit: (l) => 0.7 + 0.26 * l, cd: (l) => Math.max(1.1, 2.2 - 0.18 * l) },
+  axe:      { hit: (l) => 2.2 + 0.45 * l, cd: (l) => Math.max(0.9, 1.9 - 0.14 * l) },
+  knife:    { hit: (l) => 0.9 + 0.22 * l, cd: (l) => Math.max(0.3, 0.95 - 0.08 * l), per: (l, A) => 1 + Math.floor(l / 2) + A },
+  fireball: { hit: (l) => 2.1 + 0.55 * l, cd: (l) => Math.max(1.2, 2.7 - 0.2 * l) },
+  puddle:   { hit: (l) => 0.75 + 0.18 * l, cd: (l) => Math.max(1.8, 3.4 - 0.24 * l), tick: 0.4 },
+  whip:     { hit: ARR([1.9, 1.9, 2.5, 2.5, 3.2, 3.2, 4.4, 4.4, 5.2, 5.2]), cd: (l) => (l >= 6 ? 0.95 : 1.2) },
+  boomer:   { hit: (l) => 1.5 + 0.35 * l, cd: (l) => Math.max(1.0, 2.0 - 0.14 * l), per: () => 2 },
+  laser:    { hit: (l) => 2 + 0.5 * l, cd: (l) => Math.max(1.4, 3.0 - 0.22 * l) * (l >= 6 ? 0.85 : 1) },
+  spikes:   { hit: (l) => 1.8 + 0.45 * l, cd: (l) => Math.max(1.2, 2.6 - 0.18 * l) * (l >= 7 ? 0.85 : 1) },
+  wisp:     { hit: (l) => 1.3 + 0.32 * l, cd: (l) => Math.max(0.9, 1.8 - 0.13 * l), per: (l, A) => 3 + Math.floor(l / 2) + A },
+  trail:    { hit: (l) => 0.35 + 0.12 * l + (l >= 3 ? 0.1 : 0), tick: 0.3 },
+  blades:   { hit: ARR([0.9, 0.9, 1.1, 1.1, 1.35, 1.35, 1.65, 1.9, 1.9, 1.9]), n: ARR([1, 2, 2, 3, 3, 4, 5, 5, 6, 6]), spin: (l) => 3.2 + 0.15 * l },
+  aura:     { hit: (l) => 0.3 + 0.15 * l, tick: 0.35 }
+};
+// Урон за удар и урон в секунду по одной цели (если все удары попали, без критов).
+// p — характеристики героя: dmg (сила), amount (+снаряды), cdMul (перезарядка)
+export function weaponNums(id, l, p) {
+  const I = WINFO[id];
+  if (!I) return null;
+  const hit = p.dmg * I.hit(l) * topK(l);
+  let dps;
+  if (I.tick) dps = hit / I.tick;
+  else if (I.spin) dps = hit * (I.n(l) + (p.amount || 0)) * I.spin(l) / (Math.PI * 2);
+  else dps = hit * (I.per ? I.per(l, p.amount || 0) : 1) / (I.cd(l) * (p.cdMul || 1));
+  return { hit: Math.round(hit), dps: Math.round(dps) };
+}
 const TOP = 'Предел: +25% урона';
 export const WEAPONS = [
   { id: 'staff', icon: 'orb', name: 'Магический посох', desc: 'Сам целится и стреляет огненными сгустками в ближайшего врага.',
@@ -191,16 +230,21 @@ export const STATS = [
 ];
 
 // Герои (как они выглядят — см. src/game/sprites/heroes/).
-// atk — сила атаки стартового оружия: урон в секунду по одной цели на 1 уровне, без критов и бонусов
-// (14 × множитель урона оружия ÷ перезарядка, см. run/weapons.js и zones.js). Посчитано вручную: поменяешь оружие или формулу — пересчитай.
+// hit и atk (урон за удар и в секунду стартовым оружием) считаются сами из таблицы WINFO — см. ниже.
 export const HEROES = [
-  { id: 'mage', name: 'Маг', role: 'Чародей: бьёт издалека по площади', weapon: 'staff', hp: 100, atk: 25, speed: 150, eff: { area: 0.1 }, perk: '100 здоровья · +10% площади атак' },
-  { id: 'knight', name: 'Рыцарь', role: 'Защитник: много здоровья и брони', weapon: 'whip', hp: 150, atk: 22, speed: 140, eff: { armor: 2 }, perk: '150 здоровья · +2 брони · медленнее остальных' },
-  { id: 'rogue', name: 'Разбойница', role: 'Ловкачка: самая быстрая, частые криты', weapon: 'knife', hp: 80, atk: 18, speed: 175, eff: { crit: 0.1 }, perk: '80 здоровья · самая быстрая · +10% шанса крита' },
-  { id: 'druid', name: 'Друид', role: 'Целитель: яд, лужи и восстановление', weapon: 'puddle', hp: 110, atk: 33, speed: 150, eff: { regen: 0.8, dur: 0.2 }, perk: '110 здоровья · +0,8 здоровья в секунду · яд держится дольше' },
-  { id: 'necro', name: 'Некромант', role: 'Призыватель: больше снарядов, но слабее каждый', weapon: 'wisp', hp: 90, atk: 49, speed: 145, eff: { amount: 1, dmg: -0.1 }, perk: '90 здоровья · +1 снаряд ко всему оружию · −10% урона' },
-  { id: 'cat', name: 'Пивной кот', role: 'Боец ближнего боя: пивная аура вокруг', weapon: 'aura', hp: 120, atk: 18, speed: 145, eff: { area: 0.15, regen: 0.5 }, perk: '120 здоровья · +15% площади · пиво лечит: +0,5 здоровья в секунду' }
+  { id: 'mage', name: 'Маг', role: 'Чародей: бьёт издалека по площади', weapon: 'staff', hp: 100, speed: 150, eff: { area: 0.1 }, perk: '100 здоровья · +10% площади атак' },
+  { id: 'knight', name: 'Рыцарь', role: 'Защитник: много здоровья и брони', weapon: 'whip', hp: 150, speed: 140, eff: { armor: 2 }, perk: '150 здоровья · +2 брони · медленнее остальных' },
+  { id: 'rogue', name: 'Разбойница', role: 'Ловкачка: самая быстрая, частые криты', weapon: 'knife', hp: 80, speed: 175, eff: { crit: 0.1 }, perk: '80 здоровья · самая быстрая · +10% шанса крита' },
+  { id: 'druid', name: 'Друид', role: 'Целитель: яд, лужи и восстановление', weapon: 'puddle', hp: 110, speed: 150, eff: { regen: 0.8, dur: 0.2 }, perk: '110 здоровья · +0,8 здоровья в секунду · яд держится дольше' },
+  { id: 'necro', name: 'Некромант', role: 'Призыватель: больше снарядов, но слабее каждый', weapon: 'wisp', hp: 90, speed: 145, eff: { amount: 1, dmg: -0.1 }, perk: '90 здоровья · +1 снаряд ко всему оружию · −10% урона' },
+  { id: 'cat', name: 'Пивной кот', role: 'Боец ближнего боя: пивная аура вокруг', weapon: 'aura', hp: 120, speed: 145, eff: { area: 0.15, regen: 0.5 }, perk: '120 здоровья · +15% площади · пиво лечит: +0,5 здоровья в секунду' }
 ];
+// Урон стартового оружия героя с его собственными бонусами (у некроманта +1 снаряд и −10% урона и т. п.)
+HEROES.forEach((h) => {
+  const e = h.eff || {};
+  const n = weaponNums(h.weapon, 1, { dmg: 14 * Math.max(0.4, 1 + (e.dmg || 0)), amount: e.amount || 0, cdMul: 1 / Math.max(0.5, 1 + (e.haste || 0)) });
+  h.hit = n.hit; h.atk = n.dps;
+});
 export const WDEF = {}, SDEF = {}, RDEF = {}, HDEF = {};
 WEAPONS.forEach((w) => { WDEF[w.id] = w; });
 STATS.forEach((s) => { SDEF[s.id] = s; });

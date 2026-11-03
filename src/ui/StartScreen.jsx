@@ -102,11 +102,11 @@ export default function StartScreen({ heroId, best, account }) {
             <div className="hbars">
               <span>Здоровье</span><i style={{ '--k': barK('hp', h.hp) }} /><b>{h.hp}</b>
               <span>Скорость</span><i style={{ '--k': barK('speed', h.speed) }} /><b>{h.speed}</b>
-              <span title="Урон в секунду по одной цели, когда все удары попали. Без критов и бонусов">Атака</span><i style={{ '--k': barK('atk', h.atk) }} /><b>{h.atk}/с</b>
+              <span title="Урон в секунду по одной цели стартовым оружием, если все удары попали. Без критов">Урон/с</span><i style={{ '--k': barK('atk', h.atk) }} /><b>{h.atk}</b>
             </div>
             <div className="hero-weapon">
               <span className="slot"><Icon name={Wd.icon} /></span>
-              <div><b>{Wd.name}</b><small>{Wd.desc}</small></div>
+              <div><b>{Wd.name} <em className="wdmg" title="Столько урона наносит один удар — эти цифры и вылетают над врагами">{h.hit} за удар</em></b><small>{Wd.desc}</small></div>
             </div>
             <p className="perk">{h.perk}</p>
           </div>
