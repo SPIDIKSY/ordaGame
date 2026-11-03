@@ -25,7 +25,7 @@ export const HERO_LOOK = {
             pose: (P) => poseCaster(P, -0.05), weapon: drawStaffNecro },
   cat:    { body: bodyCat,    ring: '255,200,90',  glow: null,     sleeve: '#3a56b0', sleeveLine: '#0a1030', cuff: '#eef2fb', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: FUR0, handLine: FUR_LINE, atk: 0.7,
             pose: poseCat, weapon: drawMug },
-  vampire: { body: bodyVampire, ring: '170,20,50', glow: 'soul', sleeve: '#4a1220', sleeveLine: '#0a0204', cuff: '#f2ecef', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#f0ecf2', handLine: '#5a4a62', atk: 0.32,
+  vampire: { body: bodyVampire, ring: '170,20,50', glow: 'soul', sleeve: '#4a1220', sleeveLine: '#0a0204', cuff: '#f2ecef', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#d8cede', handLine: '#4a3a52', atk: 0.32,
             pose: (P) => poseCaster(P, 0), weapon: drawSoulOrb }
 };
 

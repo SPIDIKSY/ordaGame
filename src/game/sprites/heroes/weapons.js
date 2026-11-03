@@ -137,11 +137,13 @@ export function drawStaffNecro(x, fl, t) {
 
 // Сгусток души в руке Негжера: красно-фиолетовое ядро над ладонью, дымок и кружащие искры
 export function drawSoulOrb(x, fl, t) {
-  const cy = -5.5, r = 3.4 * (1 + fl * 0.35) * (0.94 + 0.06 * Math.sin(t * 7));
-  x.fillStyle = 'rgba(150,40,110,.45)';
-  x.beginPath(); x.moveTo(-r * 0.8, cy);
-  x.quadraticCurveTo(-1.2 + Math.sin(t * 5) * 1.4, cy - r * 2.4, Math.sin(t * 4) * 1.2, cy - r * 3.1);
-  x.quadraticCurveTo(1.6, cy - r * 1.5, r * 0.8, cy); x.closePath(); x.fill();
+  const cy = -4.8, r = 3.4 * (1 + fl * 0.35) * (0.94 + 0.06 * Math.sin(t * 7));
+  // дымок над сгустком: три тающих клуба, покачиваются
+  for (let k = 1; k <= 3; k++) {
+    x.globalAlpha = 0.42 - k * 0.11; x.fillStyle = '#7a2a5e';
+    circ(x, Math.sin(t * 3 + k * 1.7) * 1.3, cy - r * 0.6 - k * 2.1, r * (0.75 - k * 0.15));
+  }
+  x.globalAlpha = 1;
   glowOn(x, '#ff3a8a', 6 + fl * 10);
   x.fillStyle = rg(x, -1, cy - 1.2, 0.4, 0, cy, r, [[0, '#fff0f6'], [0.35, '#ff6aa8'], [1, '#8a1a5a']]);
   circ(x, 0, cy, r);
