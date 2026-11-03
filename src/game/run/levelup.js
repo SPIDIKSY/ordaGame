@@ -1,7 +1,7 @@
 /* =====================================================
    НОВЫЙ УРОВЕНЬ: оружие, реликвии, характеристики, переброс
    ===================================================== */
-import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, wDesc, wLv } from '../data.js';
+import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, wDesc, wLv, weaponFacts } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
@@ -42,16 +42,16 @@ function cardParts(c) {
   if (c.type === 'wnew' || c.type === 'wup') {
     const Wd = WDEF[c.id], n = G.w[c.id] || 0;
     icon = Wd.icon; name = Wd.name;
-    if (c.type === 'wnew') { cc = '#ffb02e'; cat = 'Новое оружие'; lv = 'слот ' + (G.wOrder.length + 1) + ' из ' + MAX_WEAPONS; desc = wDesc(Wd, G.p.steal); cls = 'weap'; }
+    if (c.type === 'wnew') { cc = '#ffb02e'; cat = 'Новое оружие'; lv = 'слот ' + (G.wOrder.length + 1) + ' из ' + MAX_WEAPONS; desc = weaponFacts(c.id, 1, G.p); hint = wDesc(Wd); cls = 'weap'; }
     else { cc = '#ffd56e'; cat = 'Оружие'; lv = 'ур. ' + (n + 1) + ' из ' + WMAX; desc = wLv(Wd, n - 1, G.p.steal); cls = 'wup'; pips = [n + 1, WMAX]; }
   } else if (c.type === 'rnew' || c.type === 'rup') {
     const R = RDEF[c.id], n = G.r[c.id] || 0;
-    cc = RCOL; icon = R.icon; name = R.name; desc = (c.type === 'rnew' ? '' : 'Ещё ') + effText(R.eff); hint = effHint(R.eff); cls = 'relic';
+    cc = RCOL; icon = R.icon; name = R.name; desc = (c.type === 'rnew' ? '' : 'Ещё ') + effText(R.eff).split(', ').join(' · '); hint = effHint(R.eff); cls = 'relic';
     if (c.type === 'rnew') { cat = 'Новая реликвия'; lv = 'слот ' + (G.rOrder.length + 1) + ' из ' + MAX_RELICS; }
     else { cat = 'Реликвия'; lv = 'ур. ' + (n + 1) + ' из ' + RMAX; pips = [n + 1, RMAX]; }
   } else if (c.type === 'stat') {
     const S = SDEF[c.id], n = G.st[c.id] ? G.st[c.id].n : 0;
-    cc = RAR[c.r].col; icon = S.icon; name = S.name; cat = RAR[c.r].name; lv = 'ур. ' + (n + 1) + ' из ' + S.max; desc = effText(c.eff); hint = effHint(c.eff); cls = 'r' + c.r; pips = [n + 1, S.max];
+    cc = RAR[c.r].col; icon = S.icon; name = S.name; cat = RAR[c.r].name; lv = 'ур. ' + (n + 1) + ' из ' + S.max; desc = effText(c.eff).split(', ').join(' · '); hint = effHint(c.eff); cls = 'r' + c.r; pips = [n + 1, S.max];
   } else { cc = '#ff7a8a'; icon = 'heart'; name = 'Лечение'; cat = 'Всё прокачано'; lv = ''; desc = 'Восстановить 50 здоровья.'; }
   return { cc, cls, icon, cat, lv, name, desc, hint, pips };
 }

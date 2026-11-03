@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { HEROES, HDEF, WDEF, fmt, wDesc } from '../game/data.js';
+import { HEROES, HDEF, WDEF, fmt } from '../game/data.js';
 import { getHeroSprites, drawHeroArm, HERO_LOOK } from '../game/sprites/heroes/index.js';
 import { GLOW } from '../game/sprites/world.js';
 import { setGlowScale } from '../game/gfx.js';
@@ -106,9 +106,9 @@ export default function StartScreen({ heroId, best, account }) {
             </div>
             <div className="hero-weapon">
               <span className="slot"><Icon name={Wd.icon} /></span>
-              <div><b>{Wd.name}</b><small>{wDesc(Wd, h.steal)}</small></div>
+              <div><b>{Wd.name}</b><small>{h.wfacts}</small></div>
             </div>
-            <p className="perk">{h.perk}</p>
+            {!!h.perks.length && <ul className="perk">{h.perks.map((t) => <li key={t}>{t}</li>)}</ul>}
           </div>
         </section>
         <div className="heroes" role="radiogroup" aria-label="Герой">

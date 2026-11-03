@@ -103,7 +103,7 @@ export default function ChestScreen({ chest }) {
         <div className="cinfo">
           <p className="rar">{chest.rarity}</p>
           <h2>{chest.name}</h2>
-          <p className="lead">{chest.desc}</p>
+          <p className="lead" title={chest.hint || undefined}>{chest.desc}</p>
           <button id="takeBtn" className="btn" type="button" disabled={!canTake} onClick={game.takeChest}>Забрать</button>
         </div>
       </div>

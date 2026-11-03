@@ -3,7 +3,7 @@
    Снимки снаряжения для HUD, паузы и экрана смерти.
    В React отправляем только то, что поменялось.
    ===================================================== */
-import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt, weaponNums, wDesc, STEAL } from '../data.js';
+import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, fmt, weaponNums, wDesc, weaponFacts, STEAL } from '../data.js';
 import { PUS } from '../sprites/world.js';
 import { hud } from '../store.js';
 import { G } from './state.js';
@@ -15,7 +15,7 @@ const weaponSlot = (id) => {
   const n = weaponNums(id, G.w[id], G.p);
   return { key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].col, badge: G.w[id] >= WMAX ? 'MAX' : String(G.w[id]), name: WDEF[id].name,
     sub: n ? 'урон ' + n.hit : '',
-    title: WDEF[id].name + ' · ур. ' + G.w[id] + (n ? ' · ' + n.hit + ' урона за удар' : '') + '. ' + wDesc(WDEF[id], G.p.steal) };
+    title: WDEF[id].name + ' · ур. ' + G.w[id] + ': ' + weaponFacts(id, G.w[id], G.p) };
 };
 const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] + ': ' + effText(scaleEff(RDEF[id].eff, G.r[id])) + '. ' + effHint(RDEF[id].eff) });
 const itemSlot = (id) => {
@@ -82,7 +82,7 @@ export function pauseSnapshot() {
     { id: 'revive', label: 'Воскрешения', value: String(p.revive), tone: tone(p.revive) }
   ].map((s) => ({ ...s, hint: (UNIT[s.id] ? UNIT[s.id] + ' ' : '') + EFX[s.id].h[0].toUpperCase() + EFX[s.id].h.slice(1) + '.' }));
   // Негжер: сколько максимума здоровья уже накрадено за забег
-  if (p.steal) stats.splice(stats.findIndex((s) => s.id === 'vamp') + 1, 0, { id: 'steal', label: 'Кража жизни', value: '+' + G.stolen + ' из ' + STEAL.cap, tone: tone(G.stolen),
+  if (p.steal) stats.splice(stats.findIndex((s) => s.id === 'vamp') + 1, 0, { id: 'steal', label: 'Кража жизни', value: '+' + G.stolen, tone: tone(G.stolen),
     hint: 'Сколько максимума здоровья украдено за забег. Убийство с шансом лечит на ' + STEAL.heal + ' и навсегда даёт +' + STEAL.hp + ' к максимуму (с босса — всегда и +' + STEAL.bossHp + ').' });
   // Снаряжение теперь видно только здесь: на игровом экране оно закрывало пол-обзора
   const gear = [
