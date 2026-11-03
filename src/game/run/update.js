@@ -232,6 +232,13 @@ function moveEnemyShots(dt, g, p) {
 }
 
 // Кристаллы опыта, сердечки и временные бонусы
+// Касается ли предмет героя. Герой нарисован высоким (голова выше центра, ноги ниже),
+// поэтому зона подбора — вытянутый овал по его фигуре, а не маленький круг в центре
+const PICKUP_PULL = 80;
+function touchesHero(p, x, y, r) {
+  const dx = (x - p.x) / (p.r + 10 + r), dy = (y - (p.y - 6)) / (p.r + 22 + r);
+  return dx * dx + dy * dy < 1;
+}
 function collectLoot(dt, g, p) {
   for (let i = 0; i < g.gems.length; i++) {
     const gm = g.gems[i];
@@ -250,7 +257,10 @@ function collectLoot(dt, g, p) {
   for (let i = 0; i < g.pickups.length; i++) {
     const q = g.pickups[i]; q.life -= dt;
     if (q.life <= 0) { q.take = true; continue; }
-    if (!q.take && Math.hypot(p.x - q.x, p.y - q.y) < p.r + 16) { q.take = true; usePickup(q); }
+    // в паре шагов от героя бонус сам подлетает к нему; подбирается от касания любой частью героя
+    const dx = p.x - q.x, dy = p.y - q.y, d = Math.hypot(dx, dy) || 1;
+    if (d < PICKUP_PULL) { const v = 320 * dt * (1 + (PICKUP_PULL - d) / PICKUP_PULL); q.x += dx / d * Math.min(v, d); q.y += dy / d * Math.min(v, d); }
+    if (!q.take && touchesHero(p, q.x, q.y, 16)) { q.take = true; usePickup(q); }
   }
   compact(g.pickups, notTaken);
 }
@@ -270,7 +280,7 @@ function touchChests(dt, g, p) {
   let chestHit = null;
   for (let i = 0; i < g.chests.length; i++) {
     const c = g.chests[i]; c.t += dt;
-    if (!chestHit && Math.hypot(p.x - c.x, p.y - c.y) < p.r + 18) { chestHit = c; c.take = true; }
+    if (!chestHit && touchesHero(p, c.x, c.y, 20)) { chestHit = c; c.take = true; }
   }
   return chestHit;
 }
