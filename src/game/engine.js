@@ -4,14 +4,14 @@
    обновить мир (run/update.js) → нарисовать (render/) → обновить HUD.
    Логика забега разложена по папке run/, управление — input.js.
    ===================================================== */
-import { fmt, STEAL } from './data.js';
+import { fmt, STEAL, ITEMS } from './data.js';
 import { render } from './render/index.js';
 import { perfFrame, perfStats } from './perf.js';
 import { settings, onSettings } from './settings.js';
 import { ui } from './store.js';
 import { canvas, W, stick, keys, KEYMAP, resize, stickReset, stickSet, hintTimer, hideHint, attachScreen, ctx, appEl, H, dpr, hx, hy } from './input.js';
 import { state, G, heroSpr } from './run/state.js';
-import { heroAttack } from './run/player.js';
+import { heroAttack, applyEff } from './run/player.js';
 import { nearest } from './run/weapons.js';
 import { update } from './run/update.js';
 import { openChest, takeChest } from './run/chests.js';
@@ -193,20 +193,34 @@ if (import.meta.env && import.meta.env.DEV) {
       selectHero(opt.hero);
       startGame();
       if (opt.weapon) { G.w = { [opt.weapon]: opt.lvl }; G.wOrder = [opt.weapon]; G.wt = { [opt.weapon]: 0.2 }; G.heroWeapon = opt.weapon; }
+      // start — начать сразу с этой секунды; build: 'max' — все характеристики на потолке,
+      // оружие weapons (до 5) 10-го уровня с двумя Дубликаторами, легендарки legends (по умолчанию все)
+      if (opt.start) { G.t = opt.start; G.bossT = 150 - (opt.start % 150) || 150; G.level = Math.max(1, Math.floor(opt.start / 8)); G.run.nextBeat = Infinity; }
+      if (opt.build === 'max') {
+        const ws = opt.weapons || [G.heroWeapon || 'staff', 'meteor', 'puddle', 'aura', 'knife'].filter((v, i, a) => v && a.indexOf(v) === i).slice(0, 5);
+        G.w = {}; G.wOrder = []; G.wt = {};
+        for (const id of ws) { G.w[id] = 10; G.wOrder.push(id); G.wt[id] = 0.2; if (['nova', 'aura', 'trail'].indexOf(id) < 0) G.wAmt[id] = 2; }
+        const legs = opt.legends || ITEMS.filter((it) => it.legend).map((it) => it.id);
+        G.legend = {}; for (const id of legs) { const it = ITEMS.find((q) => q.id === id); G.legend[id] = true; applyEff(G.p, it.eff); }
+        const add = {}; for (const k in G.p.caps) add[k] = Math.max(0, G.p.caps[k] - (G.p.b[k] || 0));
+        applyEff(G.p, add); G.p.hp = G.p.maxHp;
+      }
       G.dmgBy = {}; soloMode = !!opt.solo;
-      let steps = 0;
+      let steps = 0, peakE = 0;
       const t0 = performance.now();
       while (state !== 'dead' && G.t < opt.max) {
         if (state === 'levelup') { botPick(); continue; }
         if (state === 'chest') { takeChest(); continue; }
-        botInput();
+        if (opt.afk) { stick.vx = 0; stick.vy = 0; } else botInput();
+        if (opt.god) G.p.inv = 1e9;
         update(opt.dt); steps++;
+        if (G.enemies.length > peakE) peakE = G.enemies.length;
         if (stolen5 === null && G.t >= 300) stolen5 = G.stolen;
       }
       Object.assign(STEAL, keep);
       const r = { hero: opt.hero, time: Math.round(G.t), kills: G.kills, level: G.level, weapons: G.wOrder.map((id) => id + G.w[id]).join(','),
         dmgBy: G.dmgBy, hp: Math.round(G.p.hp), maxHp: G.p.maxHp,
-        st: { dmg: +(G.p.dmg / 14).toFixed(2), haste: +(1 / G.p.cdMul).toFixed(2), area: +G.p.area.toFixed(2), dur: +G.p.dur.toFixed(2), regen: +G.p.regen.toFixed(2), armor: G.p.armor, amount: G.p.amount, crit: +G.p.crit.toFixed(2), revive: G.p.revive, revUsed: G.p.revUsed }, stolen: G.stolen, stolen5, steals: G.steals, ms: Math.round(performance.now() - t0), dead: state === 'dead' };
+        peakE, st: { dmg: +(G.p.dmg / 14).toFixed(2), haste: +(1 / G.p.cdMul).toFixed(2), area: +G.p.area.toFixed(2), dur: +G.p.dur.toFixed(2), regen: +G.p.regen.toFixed(2), armor: G.p.armor, amount: G.p.amount, crit: +G.p.crit.toFixed(2), revive: G.p.revive, revUsed: G.p.revUsed }, stolen: G.stolen, stolen5, steals: G.steals, ms: Math.round(performance.now() - t0), dead: state === 'dead' };
       stickReset(); goMenu();
       return r;
     }

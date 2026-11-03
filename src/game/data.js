@@ -423,7 +423,9 @@ export const BOSSES = [
   { key: 'lich',  name: 'Король-лич',      hp: 2100, spd: 44, dmg: 32, r: 30, xp: 120, fps: 4, pc: '#7dff9a', boss: true, ab: 'bullets', fly: true }
 ];
 export const BOSS = BOSSES[0];
-export const MAXE = 240;
+// До Волны смерти поток врагов растёт до MAXE, дальше — до MAX_ENEMIES. Больше MAX_ENEMIES
+// врагов на поле не бывает никогда: новые приходят вместо слабых (см. spawnRegular в run/enemies.js)
+export const MAXE = 240, MAX_ENEMIES = 300;
 // Поляна, на которой идёт бой: круг с центром в точке старта. Поперечник 4400 пикселей —
 // герой пробегает его примерно за полминуты, места для манёвров с запасом.
 export const ARENA_R = 2200;

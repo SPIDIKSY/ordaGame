@@ -2,12 +2,12 @@
    ОБНОВЛЕНИЕ МИРА (каждый кадр)
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
-import { TYPES, BOSSES, MAXE, DOOM_T, DOOM, coinRoll } from '../data.js';
+import { TYPES, BOSSES, MAXE, MAX_ENEMIES, DOOM_T, DOOM, coinRoll } from '../data.js';
 import { BIOMES, BIOME_EVERY, HELL } from '../sprites/biomes.js';
 import { stick, keys } from '../input.js';
 import { state, G, GRACE_RAMP } from './state.js';
 import { toast, burst, pop, addFx } from './fx.js';
-import { spawnDist, pickType, spawnEnemy, enemyAI, separate } from './enemies.js';
+import { spawnDist, pickType, spawnEnemy, spawnRegular, enemyAI, separate } from './enemies.js';
 import { addXp, usePickup, hurtPlayer, hitEnemy } from './combat.js';
 import { TRAIL, TRAILC, explode, updateWeapons } from './weapons.js';
 import { openChest } from './chests.js';
@@ -104,27 +104,25 @@ function updateTimeline(dt, g, p, t) {
 
 // Появление врагов: постоянный поток, волны, элита, боссы
 function spawnEnemies(dt, g, t) {
-  const maxE = g.doom ? 320 : MAXE;
+  const maxE = g.doom ? MAX_ENEMIES : MAXE;
   // в начале врагов поменьше, к пятой минуте — столько же, сколько раньше
   const rate = g.doom ? 16 + (t - DOOM_T) / 60 * 5 : Math.min(13, 0.6 + t * 0.014 + t * t * 0.00005);
-  if (g.enemies.length < maxE) {
-    g.spawnAcc += rate * dt;
-    while (g.spawnAcc >= 1) { g.spawnAcc -= 1; spawnEnemy(g.doom && Math.random() < 0.35 ? DOOM : pickType(t)); }
-  } else g.spawnAcc = 0;
+  g.spawnAcc += rate * dt;
+  // поле заполнено — новые приходят только вместо слабых за экраном
+  while (g.spawnAcc >= 1) { g.spawnAcc -= 1; spawnRegular(g.doom && Math.random() < 0.35 ? DOOM : pickType(t), undefined, undefined, maxE); }
 
   g.waveT -= dt;
   if (g.waveT <= 0) {
     g.waveT = 28;
     // волна приходит с одной стороны — с той, где за экраном ещё есть поляна
     const n = Math.min(40, Math.round(4 + t / 7)), d = spawnDist() + 10, a = arenaSpot(g.p.x, g.p.y, Math.random() * TAU, d + 30, 40).a, T = pickType(t);
-    for (let i = 0; i < n && g.enemies.length < MAXE + 60; i++) spawnEnemy(T, a + rnd(-0.45, 0.45), d + Math.random() * 60);
+    for (let i = 0; i < n; i++) spawnRegular(T, a + rnd(-0.45, 0.45), d + Math.random() * 60, MAX_ENEMIES);
     toast('Волна врагов!');
   }
   g.eliteT -= dt;
   if (g.eliteT <= 0) {
     g.eliteT = 50;
-    spawnEnemy(TYPES[Math.max(0, g.unlocked - 1 - Math.floor(Math.random() * Math.min(2, g.unlocked)))], undefined, undefined, true);
-    const M = makeMiniboss(g.enemies[g.enemies.length - 1]);
+    const M = makeMiniboss(spawnEnemy(TYPES[Math.max(0, g.unlocked - 1 - Math.floor(Math.random() * Math.min(2, g.unlocked)))], undefined, undefined, true));
     toast('Минибосс: ' + M.name + '! Победи его и получи сундук');
   }
   g.bossT -= dt;

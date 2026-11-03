@@ -4,7 +4,7 @@
    как ведут себя (поведение по типам) и как расталкивают друг друга.
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
-import { TYPES, SPIDER, GHOST, DOOM_T } from '../data.js';
+import { TYPES, SPIDER, GHOST, DOOM_T, MAX_ENEMIES } from '../data.js';
 import { W, H, hx, hy } from '../input.js';
 import { G } from './state.js';
 import { burst, addFx } from './fx.js';
@@ -35,26 +35,66 @@ export function pickType(t) {
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0 && w[i] > 0) return TYPES[i]; }
   return TYPES[0];
 }
+/* --- не больше MAX_ENEMIES врагов на поле ---
+   Когда поле заполнено, новый обычный враг появляется только вместо самого слабого
+   обычного врага за экраном (тот исчезает без опыта и не в счёт убийств), и только если
+   новый сильнее. Так давление растёт, а врагов не становится больше. */
+export function aliveEnemies() { let n = 0; const E = G.enemies; for (let i = 0; i < E.length; i++) if (!E[i].dead) n++; return n; }
+function offscreen(e) {
+  const x = e.x - (G.p.x - hx), y = e.y - (G.p.y - hy);
+  return x < -40 || x > W + 40 || y < -40 || y > H + 40;
+}
+// Самый слабый обычный враг: за экраном, а если onScreen — где угодно
+function weakest(onScreen) {
+  let w = null; const E = G.enemies;
+  for (let i = 0; i < E.length; i++) {
+    const e = E[i];
+    if (e.dead || e.elite || e.T.boss || e.minion || (!onScreen && !offscreen(e))) continue;
+    if (!w || e.maxHp < w.maxHp) w = e;
+  }
+  return w;
+}
+// Враг уходит с поля без опыта и не в счёт убийств
+export function vanish(e) { e.dead = true; e.gone = true; }
+// Обычный враг из потока или волны: пока врагов меньше limit — просто появляется, иначе — вместо слабого
+export function spawnRegular(T, ang, dist, limit) {
+  if (aliveEnemies() >= Math.min(limit, MAX_ENEMIES)) {
+    const w = weakest(false);
+    if (!w || w.maxHp >= T.hp * scaling(G.t).hp * 0.999) return null;
+    vanish(w);
+  }
+  return spawnEnemy(T, ang, dist);
+}
 export function spawnEnemy(T, ang, dist, elite) {
   const g = G, p = g.p, t = g.t;
+  // поле заполнено: элита и боссы всё равно приходят — вместо самого слабого обычного врага;
+  // призванные и детёныши студня — нет
+  if (aliveEnemies() >= MAX_ENEMIES) {
+    if (!elite && !T.boss) return null;
+    const w = weakest(false) || weakest(true);
+    if (w) vanish(w);
+  }
   const a = ang !== undefined ? ang : Math.random() * TAU;
   const d = dist !== undefined ? dist : spawnDist();
   const S = scaling(t), hpM = S.hp, dmgM = S.dmg, spM = S.spd;
   const k = elite ? 1.35 : 1;
   const hp = T.hp * hpM * (elite ? 7 : 1);
   const at = arenaSpot(p.x, p.y, a, d, T.r * k + 10);
-  g.enemies.push({
+  const e = {
     id: g.nextId++, T, elite: !!elite, scale: k,
     x: at.x, y: at.y, r: T.r * k,
     hp, maxHp: hp, spd: T.spd * spM * (0.9 + Math.random() * 0.2) * (elite ? 1.05 : 1),
     dmg: T.dmg * dmgM * (elite ? 1.5 : 1), xp: T.xp * (1 + t / 300) * (elite ? 5 : 1),
     hitCd: 0, flash: 0, bladeCd: 0, slow: 0, kx: 0, ky: 0, ph: Math.random() * 4, dead: false, born: 0, sq: 0, atk: 1 + Math.random() * 1.5, cast: 0, fuse: 0
-  });
+  };
+  g.enemies.push(e);
+  return e;
 }
 /* --- поведение особых врагов и атаки боссов --- */
 export function spawnAt(T, x, y) {
-  spawnEnemy(T, 0, 0);
-  const e = G.enemies[G.enemies.length - 1]; e.x = x; e.y = y; e.born = 0.3;
+  const e = spawnEnemy(T, 0, 0);
+  if (!e) return null;
+  e.x = x; e.y = y; e.born = 0.3;
   return e;
 }
 // Снаряды врагов: скорость (пикс/с), доля урона врага и размер. Подобрано так, чтобы
