@@ -176,12 +176,13 @@ if (import.meta.env && import.meta.env.DEV) {
     openChest: (kind) => openChest(kind || 'boss'),
     levelUp: () => { if (G) { G.pending++; } },
     heroAttack: () => G && heroAttack(),
-    // Прогон забега без отрисовки. Пример: __orda.sim({ hero: 'knight', max: 900 })
+    // Прогон забега без отрисовки. Пример: __orda.sim({ hero: 'knight', max: 900 }).
+    // weapon и lvl — начать с одним оружием нужного уровня: __orda.sim({ weapon: 'whip', lvl: 10, solo: true })
     sim(o) {
-      const opt = Object.assign({ hero: 'mage', max: 900, dt: 1 / 30, weapon: null }, o);
+      const opt = Object.assign({ hero: 'mage', max: 900, dt: 1 / 30, weapon: null, lvl: 1 }, o);
       selectHero(opt.hero);
       startGame();
-      if (opt.weapon) { G.w = { [opt.weapon]: 1 }; G.wOrder = [opt.weapon]; G.wt = { [opt.weapon]: 0.2 }; G.heroWeapon = opt.weapon; }
+      if (opt.weapon) { G.w = { [opt.weapon]: opt.lvl }; G.wOrder = [opt.weapon]; G.wt = { [opt.weapon]: 0.2 }; G.heroWeapon = opt.weapon; }
       G.dmgBy = {}; soloMode = !!opt.solo;
       let steps = 0;
       const t0 = performance.now();

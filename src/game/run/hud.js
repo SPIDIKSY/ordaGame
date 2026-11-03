@@ -70,7 +70,9 @@ export function updateHud() {
   const hp = Math.ceil(Math.max(0, p.hp));
   const rage = g.buffs.rage > 0 ? Math.ceil(g.buffs.rage) : 0, haste = g.buffs.haste > 0 ? Math.ceil(g.buffs.haste) : 0;
   const time = fmt(g.t);
-  const key = [g.level, time, g.kills, g.doom, hp, p.maxHp, hpK, xpK, boss ? boss.T.name : '', bossK, rage, haste].join('|');
+  // оружие и реликвии меняются редко: по этой строке видно, что строку значков пора обновить
+  const gearKey = g.wOrder.map((id) => id + g.w[id]).join(',') + ';' + g.rOrder.map((id) => id + g.r[id]).join(',');
+  const key = [g.level, time, g.kills, g.doom, hp, p.maxHp, hpK, xpK, boss ? boss.T.name : '', bossK, rage, haste, gearKey].join('|');
   if (key === lastHudKey) return;
   lastHudKey = key;
   const buffs = [];
@@ -78,7 +80,8 @@ export function updateHud() {
   if (haste) buffs.push({ id: 'haste', name: PUS.haste.name, col: PUS.haste.col, icon: PUS.haste.icon, left: haste });
   hud.set({
     lvl: g.level, time, kills: g.kills, doom: g.doom, hp, maxHp: p.maxHp, hpK, xpK,
-    boss: boss ? { name: boss.T.name, k: bossK } : null, buffs
+    boss: boss ? { name: boss.T.name, k: bossK } : null, buffs,
+    weapons: g.wOrder.map(weaponSlot), relics: g.rOrder.map(relicSlot)
   });
 }
 // Новый забег: HUD нужно отправить заново, даже если цифры совпали с прошлым

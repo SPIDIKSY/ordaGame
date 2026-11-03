@@ -21,11 +21,13 @@ function recalc(p) {
   p.maxHp = Math.max(20, p.maxHp);
   p.hp = Math.min(p.hp, p.maxHp);
 }
+const MIN_MAX_HP = 30;
 export function applyEff(p, eff) {
   for (const k in eff) {
     const v = eff[k];
     if (k === 'dmg' || k === 'haste' || k === 'speed' || k === 'magnet' || k === 'pspeed' || k === 'range') p.b[k] += v;
-    else if (k === 'hp') { p.maxHp += v; if (v > 0) p.hp += v; }
+    // «Стеклянная пушка» на 8-м уровне отнимает 80 здоровья — у разбойницы это всё её здоровье
+    else if (k === 'hp') { p.maxHp = Math.max(MIN_MAX_HP, p.maxHp + v); p.hp = v > 0 ? p.hp + v : Math.min(p.hp, p.maxHp); }
     else if (k === 'xp') p.xpMul += v;
     else p[k] += v;
   }

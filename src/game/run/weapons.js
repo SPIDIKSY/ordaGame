@@ -5,6 +5,7 @@
 import { TAU, rnd, jag } from '../gfx.js';
 import { W, H } from '../input.js';
 import { G } from './state.js';
+import { topK } from '../data.js';
 import { heroAttack } from './player.js';
 import { burst, addFx } from './fx.js';
 import { hitEnemy } from './combat.js';
@@ -47,9 +48,9 @@ function fireStaff(target, l) {
   p.face = Math.cos(base) >= 0 ? 1 : -1;
   const ox = p.x + 12 * p.face, oy = p.y - 15;
   burst(ox, oy, '#ffd27a', 3, 110);
-  const n = 1 + (l >= 2 ? 1 : 0) + (l >= 5 ? 1 : 0) + (l >= 7 ? 1 : 0) + p.amount;
+  const n = 1 + (l >= 2 ? 1 : 0) + (l >= 5 ? 1 : 0) + (l >= 7 ? 1 : 0) + (l >= 9 ? 1 : 0) + p.amount;
   const sp = 460 * p.pspeedMul, aim = leadAim(ox, oy, target, sp);
-  const dmg = p.dmg * (l >= 3 ? 1.3 : 1), pierce = (l >= 4 ? 1 : 0) + (l >= 7 ? 1 : 0);
+  const dmg = p.dmg * (l >= 3 ? 1.3 : 1) * (l >= 8 ? 1.25 : 1) * topK(l), pierce = (l >= 4 ? 1 : 0) + (l >= 7 ? 1 : 0);
   for (let i = 0; i < n; i++) {
     const a = aim + (i - (n - 1) / 2) * 0.15;
     shoot({ kind: 'bolt', x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg, pierce, life: 380 * p.rangeMul / sp + 0.15, r: 7 });
@@ -59,7 +60,7 @@ function castChain(l) {
   const g = G, p = g.p, cand = enemiesWithin(380);
   if (!cand.length) return false;
   let cur = cand[Math.floor(Math.random() * cand.length)];
-  const hit = [cur.id], dmg = p.dmg * (1.45 + 0.4 * l), jumps = 3 + l + p.amount;
+  const hit = [cur.id], dmg = p.dmg * (1.45 + 0.4 * l) * topK(l), jumps = 3 + l + p.amount;
   let px = p.x + 12 * p.face, py = p.y - 15;
   for (let j = 0; j <= jumps && cur; j++) {
     g.bolts.push({ pts: jag(px, py, cur.x, cur.y), A: [px, py], B: [cur.x, cur.y], life: 0.24 });
@@ -118,7 +119,7 @@ const FIRE = {
   },
   nova(id, l, g, p, A) {
   g.wt[id] = Math.max(2, 4.4 - 0.4 * l) * cdK();
-  const rad = (100 + 14 * l) * p.area, d = p.dmg * (1.5 + 0.55 * l);
+  const rad = (100 + 14 * l) * p.area, d = p.dmg * (1.5 + 0.55 * l) * topK(l);
   for (let i = 0; i < g.enemies.length; i++) {
     const e = g.enemies[i]; if (e.dead) continue;
     const dx = e.x - p.x, dy = e.y - p.y, dd = Math.hypot(dx, dy) || 1;
@@ -138,7 +139,7 @@ const FIRE = {
   const n = 1 + Math.floor(l / 2) + A;
   for (let i = 0; i < n; i++) {
     const e = cand[Math.floor(Math.random() * cand.length)], T = 0.75 + i * 0.12;
-    g.meteors.push({ x: e.x + rnd(-20, 20), y: e.y + rnd(-20, 20), t: T, T, r: (70 + 8 * l) * p.area, dmg: p.dmg * (3 + l) });
+    g.meteors.push({ x: e.x + rnd(-20, 20), y: e.y + rnd(-20, 20), t: T, T, r: (70 + 8 * l) * p.area, dmg: p.dmg * (3 + l) * topK(l) });
   }
   },
   frost(id, l, g, p, A) {
@@ -146,7 +147,7 @@ const FIRE = {
   const n = 6 + 2 * l + 2 * A, sp = 360 * p.pspeedMul; g.frostA += 0.37;
   for (let i = 0; i < n; i++) {
     const a = g.frostA + i * TAU / n;
-    shoot({ kind: 'frost', x: p.x, y: p.y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (0.7 + 0.26 * l), pierce: 1 + l, life: 0.95, r: 7 });
+    shoot({ kind: 'frost', x: p.x, y: p.y - 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (0.7 + 0.26 * l) * topK(l), pierce: 1 + l, life: 0.95, r: 7 });
   }
   },
   axe(id, l, g, p, A) {
@@ -156,7 +157,7 @@ const FIRE = {
   const tgt = nearest(p.x, p.y, 480), side = tgt ? (tgt.x >= p.x ? 1 : -1) : p.face;
   for (let i = 0; i < n; i++) {
     shoot({ kind: 'axe', x: p.x, y: p.y - 10, vx: side * 50 + (i - (n - 1) / 2) * 110 + rnd(-25, 25), vy: -(470 + rnd(0, 70)) * Math.sqrt(p.pspeedMul),
-      grav: 950, rot: 0, spin: side * 13, size, dmg: p.dmg * (2.2 + 0.45 * l), pierce: 999, life: 1.9, r: 12 * size });
+      grav: 950, rot: 0, spin: side * 13, size, dmg: p.dmg * (2.2 + 0.45 * l) * topK(l), pierce: 999, life: 1.9, r: 12 * size });
   }
   },
   knife(id, l, g, p, A) {
@@ -169,7 +170,7 @@ const FIRE = {
   if (t) { const a = leadAim(p.x, p.y - 4, t, sp); dx = Math.cos(a); dy = Math.sin(a); p.face = dx >= 0 ? 1 : -1; }
   for (let i = 0; i < n; i++) {
     const off = (i - (n - 1) / 2) * 9;
-    shoot({ kind: 'knife', x: p.x - dy * off, y: p.y - 4 + dx * off, vx: dx * sp, vy: dy * sp, dmg: p.dmg * (0.9 + 0.22 * l), pierce: Math.floor(l / 3), life: 0.7 * p.rangeMul, r: 6 });
+    shoot({ kind: 'knife', x: p.x - dy * off, y: p.y - 4 + dx * off, vx: dx * sp, vy: dy * sp, dmg: p.dmg * (0.9 + 0.22 * l) * topK(l), pierce: Math.floor(l / 3), life: 0.7 * p.rangeMul, r: 6 });
   }
   },
   fireball(id, l, g, p, A) {
@@ -179,7 +180,7 @@ const FIRE = {
   const n = 1 + Math.floor(l / 3) + A, sp = 260 * p.pspeedMul;
   for (let i = 0; i < n; i++) {
     const t = cand[Math.floor(Math.random() * cand.length)], a = leadAim(p.x, p.y - 8, t, sp) + rnd(-0.08, 0.08);
-    shoot({ kind: 'fire', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (2.1 + 0.55 * l), boom: (55 + 8 * l) * p.area, pierce: 0, life: 2.2, r: 10 });
+    shoot({ kind: 'fire', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: p.dmg * (2.1 + 0.55 * l) * topK(l), boom: (55 + 8 * l) * p.area, pierce: 0, life: 2.2, r: 10 });
   }
   },
   puddle(id, l, g, p, A) {
@@ -189,12 +190,12 @@ const FIRE = {
     let tx, ty;
     if (cand.length) { const e = cand[Math.floor(Math.random() * cand.length)]; tx = e.x; ty = e.y; }
     else { const a = Math.random() * TAU; tx = p.x + Math.cos(a) * 110; ty = p.y + Math.sin(a) * 110; }
-    g.flasks.push({ sx: p.x, sy: p.y - 10, tx, ty, t: 0, T: 0.5 + i * 0.08, r: (52 + 7 * l) * p.area, life: (2.6 + 0.3 * l) * p.dur, dmg: p.dmg * (0.75 + 0.18 * l) });
+    g.flasks.push({ sx: p.x, sy: p.y - 10, tx, ty, t: 0, T: 0.5 + i * 0.08, r: (52 + 7 * l) * p.area, life: (2.6 + 0.3 * l) * p.dur, dmg: p.dmg * (0.75 + 0.18 * l) * topK(l) });
   }
   },
   whip(id, l, g, p, A) {
   g.wt[id] = (l >= 6 ? 0.95 : 1.2) * cdK();
-  const dmgF = [1.9, 1.9, 2.5, 2.5, 3.2, 3.2, 4.4][l - 1], len = 150 * p.area * (l >= 4 ? 1.3 : 1), hh = 36 * Math.sqrt(p.area);
+  const dmgF = [1.9, 1.9, 2.5, 2.5, 3.2, 3.2, 4.4, 4.4, 5.2, 5.2][l - 1] * topK(l), len = 150 * p.area * (l >= 4 ? 1.3 : 1) * (l >= 8 ? 1.15 : 1), hh = 36 * Math.sqrt(p.area);
   // меч бьёт в сторону ближайшего врага; если рядом никого — не машет впустую
   const tgt = nearest(p.x, p.y, len + 60);
   if (!tgt) { g.wt[id] = 0.1; return; }
@@ -221,15 +222,15 @@ const FIRE = {
   for (let i = 0; i < n; i++) {
     const a = base + (i - (n - 1) / 2) * 0.35;
     shoot({ kind: 'boom', x: p.x, y: p.y - 6, dx: Math.cos(a), dy: Math.sin(a), v: v0, vx: 0, vy: 0, back: false, rot: 0,
-      dmg: p.dmg * (1.5 + 0.35 * l), pierce: 999, life: 4, r: 12 * size, size });
+      dmg: p.dmg * (1.5 + 0.35 * l) * topK(l), pierce: 999, life: 4, r: 12 * size, size });
   }
   },
   laser(id, l, g, p, A) {
   const cand = enemiesWithin(450 * p.rangeMul);
   if (!cand.length) { g.wt[id] = 0.2; return; }
   g.wt[id] = Math.max(1.4, 3.0 - 0.22 * l) * cdK() * (l >= 6 ? 0.85 : 1);
-  const n = 1 + (l >= 4 ? 1 : 0) + (l >= 7 ? 1 : 0) + A, len = 480 * p.rangeMul;
-  const w = (14 + (l >= 2 ? 6 : 0) + (l >= 6 ? 6 : 0)) * p.area, d = p.dmg * (2 + 0.5 * l);
+  const n = 1 + (l >= 4 ? 1 : 0) + (l >= 7 ? 1 : 0) + (l >= 10 ? 1 : 0) + A, len = 480 * p.rangeMul;
+  const w = (14 + (l >= 2 ? 6 : 0) + (l >= 6 ? 6 : 0) + (l >= 8 ? 6 : 0)) * p.area, d = p.dmg * (2 + 0.5 * l) * topK(l);
   cand.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
   for (let i = 0; i < n; i++) {
     const t = cand[i % cand.length], a = Math.atan2(t.y - p.y, t.x - p.x) + (i >= cand.length ? i * 0.5 : 0);
@@ -245,7 +246,7 @@ const FIRE = {
   const cand = enemiesWithin(380);
   if (!cand.length) { g.wt[id] = 0.25; return; }
   g.wt[id] = Math.max(1.2, 2.6 - 0.18 * l) * cdK() * (l >= 7 ? 0.85 : 1);
-  const n = [3, 4, 4, 5, 5, 6, 6][l - 1] + A, R = 34 * p.area * (l >= 5 ? 1.25 : 1), d = p.dmg * (1.8 + 0.45 * l);
+  const n = [3, 4, 4, 5, 5, 6, 6, 7, 7, 8][l - 1] + A, R = 34 * p.area * (l >= 5 ? 1.25 : 1) * (l >= 9 ? 1.15 : 1), d = p.dmg * (1.8 + 0.45 * l) * topK(l);
   for (let i = 0; i < n; i++) {
     const t = cand[Math.floor(Math.random() * cand.length)], sx = t.x + rnd(-10, 10), sy = t.y + rnd(-6, 6);
     addFx({ type: 'spike', x: sx, y: sy, r: R, life: 0.55, T: 0.55 });
@@ -261,7 +262,7 @@ const FIRE = {
   const n = 3 + Math.floor(l / 2) + A, sp = 300 * p.pspeedMul;
   for (let i = 0; i < n; i++) {
     const a = i * TAU / n + rnd(-0.3, 0.3);
-    shoot({ kind: 'wisp', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spd: sp, dmg: p.dmg * (1.3 + 0.32 * l), pierce: 1, life: 3.2, r: 9, tgt: null });
+    shoot({ kind: 'wisp', x: p.x, y: p.y - 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spd: sp, dmg: p.dmg * (1.3 + 0.32 * l) * topK(l), pierce: 1, life: 3.2, r: 9, tgt: null });
   }
   }
 };

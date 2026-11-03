@@ -40,7 +40,7 @@ export const ui = createStore({
 export const hud = createStore({
   lvl: 1, time: '0:00', kills: 0, doom: false,
   hp: 100, maxHp: 100, hpK: 1, xpK: 0,
-  boss: null, buffs: []
+  boss: null, buffs: [], weapons: [], relics: []
 });
 
 export function useStore(store) {

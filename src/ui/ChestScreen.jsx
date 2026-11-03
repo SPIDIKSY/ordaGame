@@ -29,11 +29,13 @@ export default function ChestScreen({ chest }) {
   const clear = () => { timers.current.forEach(clearTimeout); timers.current = []; };
   const go = (p) => { phaseRef.current = p; setPhase(p); };
 
-  const reveal = () => {
+  // skipped — игрок нажал во время анимации: он уже ждёт предмет, долгая пауза перед
+  // «Забрать» не нужна. Короткая всё же есть, чтобы двойное нажатие не забирало вслепую.
+  const reveal = (skipped) => {
     if (phaseRef.current === 'revealed') return;
     clear(); go('revealed');
     setRc(RAR[chest.r].col); setIcon(chest.icon); setTick((t) => t + 1);
-    timers.current.push(setTimeout(() => setCanTake(true), 500));
+    timers.current.push(setTimeout(() => setCanTake(true), skipped ? 250 : 500));
   };
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function ChestScreen({ chest }) {
       let n = 0;
       const step = () => {
         n++;
-        if (n >= total) { reveal(); return; }
+        if (n >= total) { reveal(false); return; }
         // цвета редкости мигают; к концу чаще выпадает настоящий
         const k = n / total;
         const rr = Math.random() < k * 0.6 ? chest.r : Math.min(4, Math.floor(Math.random() * (chest.r + 2)));
@@ -82,9 +84,9 @@ export default function ChestScreen({ chest }) {
   const cls = 'overlay chest-ov ' + phase + (phase !== 'closed' ? ' opened' : '');
 
   return (
-    <div id="chest" className={cls} data-r={chest.r} style={{ '--rc': rc }}>
+    <div id="chest" className={cls} data-r={chest.r} style={{ '--rc': rc }} onClick={() => reveal(true)}>
       <div className="panel">
-        <div className="stage" onClick={reveal}>
+        <div className="stage">
           <div className="rays" />
           <div className="cglow" />
           <div className="beam" />
@@ -97,7 +99,7 @@ export default function ChestScreen({ chest }) {
           <div className="wave" />
           <div className="confetti">{confetti.map((st, i) => <i key={i} style={st} />)}</div>
         </div>
-        <p className="tap">Нажми, чтобы открыть сразу</p>
+        <p className="tap">Нажми в любом месте, чтобы открыть сразу</p>
         <div className="cinfo">
           <p className="rar">{chest.rarity}</p>
           <h2>{chest.name}</h2>

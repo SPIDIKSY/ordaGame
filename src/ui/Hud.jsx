@@ -1,9 +1,11 @@
 import { hud, useStore } from '../game/store.js';
 import { game } from '../game/engine.js';
 import Icon from './Icon.jsx';
+import Slot from './Slot.jsx';
 
-// Верх экрана в одну строку: уровень, здоровье и опыт, время, убийства, пауза.
-// Снаряжение смотреть в паузе: на игровом экране оно закрывало пол-обзора.
+// Верх экрана: строка с уровнем, здоровьем и опытом, временем, убийствами и паузой,
+// под ней — маленькие значки оружия и реликвий с уровнем. Предметы из сундуков —
+// только в паузе: их бывает много, и они закрывали пол-обзора.
 export default function Hud() {
   const h = useStore(hud);
   return (
@@ -24,6 +26,13 @@ export default function Hud() {
           </button>
         </div>
       </div>
+      {(h.weapons.length > 0 || h.relics.length > 0) && (
+        <div className="inv hudslots">
+          {h.weapons.map((s) => <Slot key={s.key} s={s} />)}
+          {h.relics.length > 0 && <span className="sep" />}
+          {h.relics.map((s) => <Slot key={s.key} s={s} />)}
+        </div>
+      )}
       {h.boss && (
         <div className="bossbar">
           <span>{h.boss.name}</span>

@@ -78,20 +78,22 @@ export default function StartScreen({ heroId, best, account }) {
 
   return (
     <div id="start" className="overlay">
-      <div className="account-bar">
-        <button type="button" className="chip" aria-label="Настройки" title="Настройки" onClick={() => setModal('settings')}><Icon name="gear" /></button>
-        {acc.status === 'user' && (
-          <button type="button" className="chip" onClick={() => setModal('profile')}><Icon name="user" />{acc.user.nick}</button>
-        )}
-        {acc.status === 'guest' && (
-          <button type="button" className="chip" onClick={() => setModal('auth')}><Icon name="user" />Войти</button>
-        )}
-        {acc.status === 'offline' && (
-          <button type="button" className="chip off" title="Сервер недоступен — нажми, чтобы проверить ещё раз" onClick={() => initAccount()}>Оффлайн · повторить</button>
-        )}
-      </div>
-      <div className="menu">
+      <header className="menu-top">
         <h1>Бесконечная орда</h1>
+        <div className="account-bar">
+          <button type="button" className="chip icon" aria-label="Настройки" title="Настройки" onClick={() => setModal('settings')}><Icon name="gear" /></button>
+          {acc.status === 'user' && (
+            <button type="button" className="chip" onClick={() => setModal('profile')}><Icon name="user" />{acc.user.nick}</button>
+          )}
+          {acc.status === 'guest' && (
+            <button type="button" className="chip" onClick={() => setModal('auth')}><Icon name="user" />Войти</button>
+          )}
+          {acc.status === 'offline' && (
+            <button type="button" className="chip off" title="Сервер недоступен — нажми, чтобы проверить ещё раз" onClick={() => initAccount()}>Оффлайн · повторить</button>
+          )}
+        </div>
+      </header>
+      <div className="menu">
         <section className="menu-hero" aria-live="polite">
           <HeroPreview id={h.id} />
           <div className="hero-card">
@@ -108,23 +110,23 @@ export default function StartScreen({ heroId, best, account }) {
             <p className="perk">{h.perk}</p>
           </div>
         </section>
-        <section className="menu-side">
-          <div className="heroes" role="radiogroup" aria-label="Герой">
-            {HEROES.map((q) => (
-              <button key={q.id} type="button" role="radio" className={'hcard' + (q.id === heroId ? ' sel' : '')} aria-checked={q.id === heroId} onClick={() => game.selectHero(q.id)}>
-                <HeroPic id={q.id} w={48} h={64} />{q.name}
-              </button>
-            ))}
-          </div>
-          <div className="menu-actions">
-            <button id="startBtn" className="btn" type="button" onClick={game.start}>Играть</button>
-            {acc.status !== 'offline' && acc.status !== 'checking' && (
-              <button className="btn ghost" type="button" onClick={() => setModal('leaders')}><Icon name="trophy" />Лидеры</button>
-            )}
-          </div>
-          {!!best && <p className="best">Рекорд: {fmt(best)}</p>}
-          <p className="build" title="Когда собрана эта версия игры">сборка {__BUILD__}</p>
-        </section>
+        <div className="heroes" role="radiogroup" aria-label="Герой">
+          {HEROES.map((q) => (
+            <button key={q.id} type="button" role="radio" className={'hcard' + (q.id === heroId ? ' sel' : '')} aria-checked={q.id === heroId} onClick={() => game.selectHero(q.id)}>
+              <HeroPic id={q.id} w={33} h={44} /><span>{q.name}</span>
+            </button>
+          ))}
+        </div>
+        <div className="menu-actions">
+          <button id="startBtn" className="btn" type="button" onClick={game.start}>Играть</button>
+          {acc.status !== 'offline' && acc.status !== 'checking' && (
+            <button className="btn ghost" type="button" onClick={() => setModal('leaders')}><Icon name="trophy" />Лидеры</button>
+          )}
+        </div>
+        <p className="menu-foot">
+          {!!best && <span className="best">Рекорд: {fmt(best)}</span>}
+          <span className="build" title="Когда собрана эта версия игры">сборка {__BUILD__}</span>
+        </p>
       </div>
       {modal === 'auth' && <AuthModal onClose={() => setModal(null)} />}
       {modal === 'profile' && acc.status === 'user' && <ProfileModal account={acc} onClose={() => setModal(null)} />}
