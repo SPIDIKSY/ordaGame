@@ -22,6 +22,13 @@ const times = new Float32Array(WINDOW);
 // Сколько игра сама работала внутри кадра (без ожидания экрана): всё, мир и отрисовка
 const works = new Float32Array(WINDOW), updMs = new Float32Array(WINDOW), drwMs = new Float32Array(WINDOW);
 const med = (arr, k) => Array.from(arr.subarray(0, k)).sort((x, y) => x - y)[k >> 1];
+// Время каждого слоя отрисовки. render/index.js пишет сюда числа за текущий кадр,
+// perfFrame складывает их в историю. Для слоёв берём среднее, а не медиану:
+// Firefox отдаёт время с точностью до миллисекунды, и медиана мелкого слоя
+// была бы просто 0 или 1, а среднее по 600 кадрам показывает доли.
+export const LAYERS = ['земля', 'арена', 'пол', 'предметы', 'существа', 'снаряды', 'эффекты', 'поверх'];
+export const layerNow = new Float32Array(LAYERS.length);
+const layerSum = new Float64Array(LAYERS.length), layerHist = LAYERS.map(() => new Float32Array(WINDOW));
 let n = 0, prev = 0, hitches = 0, lastWarn = 0, nextDraw = 0, box = null;
 
 export function perfStats() {
@@ -41,7 +48,11 @@ export function perfStats() {
     рывков: hitches,
     работа: r1(med(works, k)),
     мир: r1(med(updMs, k)),
-    рисование: r1(med(drwMs, k))
+    рисование: r1(med(drwMs, k)),
+    // три самых тяжёлых слоя, по убыванию
+    слои: LAYERS.map((name, i) => ({ name, ms: layerSum[i] / k }))
+      .sort((x, y) => y.ms - x.ms).slice(0, 3)
+      .map((l) => l.name + ' ' + r1(l.ms)).join(' · ')
   };
 }
 
@@ -58,7 +69,8 @@ function paint() {
   box.textContent = s.FPS + ' FPS · медиана ' + s.медиана + ' мс\n'
     + 'p95 ' + s.p95 + ' · худший ' + s.худший + '\n'
     + 'длинных ' + s.длинных + '/' + s.кадров + ' · рывков ' + s.рывков + '\n'
-    + 'работа ' + s.работа + ' мс (мир ' + s.мир + ' · рисование ' + s.рисование + ')';
+    + 'работа ' + s.работа + ' мс (мир ' + s.мир + ' · рисование ' + s.рисование + ')\n'
+    + 'слои: ' + s.слои;
 }
 
 /**
@@ -73,6 +85,12 @@ export function perfFrame(now, info, upd, drw, hud) {
   if (dt <= 0 || dt > GAP) return;
   works[n % WINDOW] = upd + drw + hud;
   updMs[n % WINDOW] = upd; drwMs[n % WINDOW] = drw;
+  // сумма по окну: вычитаем вытесняемый кадр, прибавляем новый
+  for (let i = 0; i < LAYERS.length; i++) {
+    const h = layerHist[i], j = n % WINDOW;
+    if (n >= WINDOW) layerSum[i] -= h[j];
+    h[j] = layerNow[i]; layerSum[i] += layerNow[i];
+  }
   times[n % WINDOW] = dt;
   n++;
   if (dt > HITCH) {
