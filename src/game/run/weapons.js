@@ -263,7 +263,7 @@ const FIRE = {
   if (!cand.length) { g.wt[id] = 0.05; return; }
   g.wt[id] = WINFO.soul.cd(l) * cdK();
   cand.sort((a, b) => (a.x - p.x) ** 2 + (a.y - p.y) ** 2 - ((b.x - p.x) ** 2 + (b.y - p.y) ** 2));
-  const n = WINFO.soul.per(l, A), sp = 380 * p.pspeedMul, d = p.dmg * WINFO.soul.hit(l) * topK(l), pierce = WINFO.soul.pierce(l);
+  const n = WINFO.soul.per(l, A), sp = 430 * p.pspeedMul, d = p.dmg * WINFO.soul.hit(l) * topK(l), pierce = WINFO.soul.pierce(l);
   p.face = cand[0].x >= p.x ? 1 : -1;
   const ox = p.x + 11 * p.face, oy = p.y - 12;
   burst(ox, oy, '#ff7ab8', 3, 90);
