@@ -28,7 +28,6 @@ export const ui = createStore({
   best: 0,
   hint: false,
   toast: null,         // { id, text }
-  inv: null,           // слоты оружия, реликвий и предметов
   choices: [],         // карточки нового уровня
   rerolls: 0,
   chest: null,         // награда из сундука

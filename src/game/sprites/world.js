@@ -2,7 +2,7 @@
    МИР: сундуки, кристаллы опыта, свечения, бонусы,
    декор поляны, тайл травы и снаряды оружия
    ===================================================== */
-import { TAU, mk, rg, lg, ell, circ, rrect, star, glowOn, glowOff, line, mulberry } from '../gfx.js';
+import { TAU, mk, rg, lg, ell, circ, rrect, star, glowOn, glowOff, setGlowScale, line, mulberry, softSprite } from '../gfx.js';
 
 function drawChest(x, open) {
   const gold = () => lg(x, 0, -16, 0, 12, [[0, '#ffe9a0'], [1, '#c98a1c']]);
@@ -59,6 +59,15 @@ export const HEARTSPR = mk(18, 18, (x) => {
   x.fillStyle = 'rgba(255,255,255,.7)'; ell(x, -3.6, -2.6, 1.8, 1.1, -0.6);
 });
 export const CHEST = mk(36, 40, (x) => drawChest(x, false));
+// Готовые пятна-градиенты вместо построения их на каждый кадр
+export const SOFT = {
+  decal: softSprite([[0, 'rgba(18,8,6,.95)'], [0.55, 'rgba(50,22,10,.55)'], [1, 'rgba(0,0,0,0)']]),
+  fire: softSprite([[0, 'rgba(255,170,60,.55)'], [0.7, 'rgba(255,90,30,.3)'], [1, 'rgba(255,60,20,0)']]),
+  poison: softSprite([[0, 'rgba(130,255,90,.5)'], [0.75, 'rgba(60,200,70,.38)'], [1, 'rgba(40,140,50,0)']]),
+  fog: softSprite([[0, 'rgba(170,160,210,1)'], [1, 'rgba(170,160,210,0)']], 64),
+  shade: softSprite([[0, 'rgba(0,0,0,1)'], [0.6, 'rgba(0,0,0,.45)'], [1, 'rgba(0,0,0,0)']], 64)
+};
+
 export const GLOW = {
   amber: glowSprite('#ffb02e', 24), gold: glowSprite('#ffd56e', 32), cyan: glowSprite('#7fdcff', 24),
   blue: glowSprite('#5ab8ff', 16), green: glowSprite('#4fe08a', 16), red: glowSprite('#ff4a6a', 16), orange: glowSprite('#ff7a2e', 32)
@@ -222,9 +231,17 @@ export const BOOMER = mk(32, 32, (x) => {
   line(x, -8, -9.5, -7, -3.2); line(x, 4.5, 4.5, 8.5, 3); line(x, -2, -8, 0, -4);
 });
 
-// Картинки сундука для экрана открытия
-export const CHEST_URL = mk(40, 44, (x) => { x.translate(0, 4); drawChest(x, false); }, 7).toDataURL();
-export const CHEST_OPEN_URL = mk(40, 44, (x) => { x.translate(0, 4); drawChest(x, true); }, 7).toDataURL();
+// Сундук для экрана открытия рисуется прямо на холсте страницы: картинка через
+// toDataURL в Firefox с защитой от слежки выходит пустой (как было с портретами героев)
+export function paintChest(canvas, open, cssW, cssH) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1), s = Math.min(cssW / 40, cssH / 44) * dpr;
+  canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+  const x = canvas.getContext('2d');
+  x.setTransform(s, 0, 0, s, canvas.width / 2, canvas.height / 2 + 4 * s);
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  setGlowScale(s);
+  drawChest(x, open);
+}
 
 // Семечко для оружия «Семя»
 export const SEED = mk(10, 14, (x) => {

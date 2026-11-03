@@ -1,25 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { HEROES, HDEF, WDEF, fmt } from '../game/data.js';
-import { getHeroSprites, heroPortrait, drawHeroArm, HERO_LOOK } from '../game/sprites/heroes.js';
+import { getHeroSprites, drawHeroArm, HERO_LOOK } from '../game/sprites/heroes/index.js';
 import { GLOW } from '../game/sprites/world.js';
 import { setGlowScale } from '../game/gfx.js';
 import { game } from '../game/engine.js';
 import Icon from './Icon.jsx';
+import HeroPic from './HeroPic.jsx';
 import AuthModal from './AuthModal.jsx';
 import { initAccount } from '../net/account.js';
 import ProfileModal from './ProfileModal.jsx';
 import LeaderboardModal from './LeaderboardModal.jsx';
+import SettingsModal from './SettingsModal.jsx';
 
-// Картинки героев для кнопок выбора рисуются один раз
-let portraits = null;
-const getPortraits = () => portraits || (portraits = Object.fromEntries(HEROES.map((h) => [h.id, heroPortrait(h.id)])));
+// Полоски «здоровье» и «скорость»: сравнение героев между собой.
+// Самый слабый получает четверть полоски, а не пустую — пустая читалась бы как «ноль».
+const range = (key) => { const v = HEROES.map((q) => q[key]); return [Math.min(...v), Math.max(...v)]; };
+const RANGES = { hp: range('hp'), speed: range('speed') };
+const barK = (key, v) => { const [a, b] = RANGES[key]; return 0.25 + 0.75 * (b > a ? (v - a) / (b - a) : 1); };
 
-// Живое превью выбранного героя: дышит и показывает атаку оружием
+// Живой герой на постаменте: дышит и показывает атаку оружием.
+// Размер холста берётся из вёрстки, поэтому на ПК он крупнее, чем на телефоне.
 function HeroPreview({ id }) {
   const ref = useRef(null);
   useEffect(() => {
     const cv = ref.current, c = cv.getContext('2d');
-    const dpr = Math.min(2, window.devicePixelRatio || 1), SZ = 150, S = 2.1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), SZ = cv.clientWidth || 150, S = 2.1 * SZ / 150;
     cv.width = SZ * dpr; cv.height = SZ * dpr;
     const spr = getHeroSprites(id), L = HERO_LOOK[id];
     const t0 = performance.now();
@@ -33,10 +38,9 @@ function HeroPreview({ id }) {
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
       c.setTransform(dpr * S, 0, 0, dpr * S * br, dpr * cx, dpr * (cy + 18 * S));
       const img = spr.idle;
-      c.drawImage(img, -img.w / 2, -img.h / 2 - 18, img.w, img.h);
       c.translate(0, -18);
       setGlowScale(dpr * S);
-      const tip = drawHeroArm(c, id, { atk, t, st: 0, bob: 0 });
+      const tip = drawHeroArm(c, id, { atk, t, st: 0, bob: 0 }, (cc) => cc.drawImage(img, -img.w / 2, -img.h / 2, img.w, img.h));
       if (L.glow) {
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
         c.globalCompositeOperation = 'lighter';
@@ -53,8 +57,7 @@ function HeroPreview({ id }) {
 }
 
 export default function StartScreen({ heroId, best, account }) {
-  const P = getPortraits();
-  const [modal, setModal] = useState(null); // auth | profile | leaders
+  const [modal, setModal] = useState(null); // auth | profile | leaders | settings
   const acc = account || { status: 'checking' };
   const h = HDEF[heroId] || HEROES[0], Wd = WDEF[h.weapon];
 
@@ -76,6 +79,7 @@ export default function StartScreen({ heroId, best, account }) {
   return (
     <div id="start" className="overlay">
       <div className="account-bar">
+        <button type="button" className="chip" aria-label="Настройки" title="Настройки" onClick={() => setModal('settings')}><Icon name="gear" /></button>
         {acc.status === 'user' && (
           <button type="button" className="chip" onClick={() => setModal('profile')}><Icon name="user" />{acc.user.nick}</button>
         )}
@@ -86,31 +90,46 @@ export default function StartScreen({ heroId, best, account }) {
           <button type="button" className="chip off" title="Сервер недоступен — нажми, чтобы проверить ещё раз" onClick={() => initAccount()}>Оффлайн · повторить</button>
         )}
       </div>
-      <div className="panel">
+      <div className="menu">
         <h1>Бесконечная орда</h1>
-        <HeroPreview id={h.id} />
-        <div className="heroes">
-          {HEROES.map((q) => (
-            <button key={q.id} type="button" className={'hcard' + (q.id === heroId ? ' sel' : '')} aria-pressed={q.id === heroId} onClick={() => game.selectHero(q.id)}>
-              <img src={P[q.id]} alt="" />{q.short || q.name}
-            </button>
-          ))}
-        </div>
-        <div className="hero-info">
-          <span className="wpn"><Icon name={Wd.icon} />{Wd.name}</span>
-          <p>{h.perk}</p>
-        </div>
-        <div className="menu-actions">
-          <button id="startBtn" className="btn" type="button" onClick={game.start}>Играть</button>
-          {acc.status !== 'offline' && acc.status !== 'checking' && (
-            <button className="btn ghost" type="button" onClick={() => setModal('leaders')}><Icon name="trophy" />Лидеры</button>
-          )}
-        </div>
-        {!!best && <p className="best">Рекорд: {fmt(best)}</p>}
+        <section className="menu-hero" aria-live="polite">
+          <HeroPreview id={h.id} />
+          <div className="hero-card">
+            <h2>{h.name}</h2>
+            <p className="role">{h.role}</p>
+            <div className="hbars">
+              <span>Здоровье</span><i style={{ '--k': barK('hp', h.hp) }} /><b>{h.hp}</b>
+              <span>Скорость</span><i style={{ '--k': barK('speed', h.speed) }} /><b>{h.speed}</b>
+            </div>
+            <div className="hero-weapon">
+              <span className="slot"><Icon name={Wd.icon} /></span>
+              <div><b>{Wd.name}</b><small>{Wd.desc}</small></div>
+            </div>
+            <p className="perk">{h.perk}</p>
+          </div>
+        </section>
+        <section className="menu-side">
+          <div className="heroes" role="radiogroup" aria-label="Герой">
+            {HEROES.map((q) => (
+              <button key={q.id} type="button" role="radio" className={'hcard' + (q.id === heroId ? ' sel' : '')} aria-checked={q.id === heroId} onClick={() => game.selectHero(q.id)}>
+                <HeroPic id={q.id} w={48} h={64} />{q.name}
+              </button>
+            ))}
+          </div>
+          <div className="menu-actions">
+            <button id="startBtn" className="btn" type="button" onClick={game.start}>Играть</button>
+            {acc.status !== 'offline' && acc.status !== 'checking' && (
+              <button className="btn ghost" type="button" onClick={() => setModal('leaders')}><Icon name="trophy" />Лидеры</button>
+            )}
+          </div>
+          {!!best && <p className="best">Рекорд: {fmt(best)}</p>}
+          <p className="build" title="Когда собрана эта версия игры">сборка {__BUILD__}</p>
+        </section>
       </div>
       {modal === 'auth' && <AuthModal onClose={() => setModal(null)} />}
       {modal === 'profile' && acc.status === 'user' && <ProfileModal account={acc} onClose={() => setModal(null)} />}
       {modal === 'leaders' && <LeaderboardModal account={acc} onClose={() => setModal(null)} />}
+      {modal === 'settings' && <SettingsModal onClose={() => setModal(null)} />}
     </div>
   );
 }

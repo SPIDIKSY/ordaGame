@@ -1,21 +1,32 @@
+import { useState } from 'react';
 import { game } from '../game/engine.js';
 import Icon from './Icon.jsx';
 import ConfirmButton from './ConfirmButton.jsx';
+import SettingsModal from './SettingsModal.jsx';
 
 // Пауза: характеристики героя и снаряжение (без лишнего текста)
 export default function PauseScreen({ sections: d }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <div id="pause" className="overlay">
       <div className="panel">
         <h2>Пауза</h2>
         <p className="muted">{d.hero} · ур. {d.level} · {d.time} · убито {d.kills}</p>
-        <div className="gear">
-          {d.gear.map((s) => (
-            <span key={s.key} className="slot" style={{ '--rc': s.col }} title={s.title}>
-              <Icon name={s.icon} />{s.badge ? <b>{s.badge}</b> : null}
-            </span>
-          ))}
-        </div>
+        {d.gear.filter((grp) => grp.slots.length).map((grp) => (
+          <div key={grp.id} className="gear-group">
+            <h3>{grp.title}{grp.max ? <small> {grp.slots.length} из {grp.max}</small> : null}</h3>
+            <div className="gear">
+              {grp.slots.map((s) => (
+                <div key={s.key} className="gear-cell" title={s.title}>
+                  <span className="slot" style={{ '--rc': s.col }}>
+                    <Icon name={s.icon} />{s.badge ? <b>{s.badge}</b> : null}
+                  </span>
+                  <span className="gear-name">{s.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
         <div className="statgrid">
           {d.stats.map((s) => (
             <div key={s.id} className={'stat ' + s.tone}><span>{s.label}</span><b>{s.value}</b></div>
@@ -25,8 +36,10 @@ export default function PauseScreen({ sections: d }) {
         <div className="lvactions">
           <ConfirmButton label="Заново" onConfirm={game.start} />
           <ConfirmButton label="Сменить героя" onConfirm={game.menu} />
+          <button type="button" className="btn ghost" onClick={() => setSettingsOpen(true)}><Icon name="gear" />Настройки</button>
         </div>
       </div>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default function App() {
     <div id="app" ref={appRef}>
       <canvas id="c" ref={canvasRef} />
 
-      {s.screen !== 'menu' && <Hud inv={s.inv} />}
+      {s.screen !== 'menu' && <Hud />}
       {s.screen === 'play' && <Toast toast={s.toast} />}
       <div id="hint" className={s.hint ? '' : 'off'} style={{ bottom: s.hintBottom }}>
         {touch ? 'Тяни кружок внизу, чтобы бежать' : 'Беги на WASD или стрелках · пауза — Esc'}

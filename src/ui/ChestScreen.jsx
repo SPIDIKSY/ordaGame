@@ -1,12 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RAR } from '../game/data.js';
-import { CHEST_URL, CHEST_OPEN_URL } from '../game/sprites/world.js';
+import { paintChest } from '../game/sprites/world.js';
 import { game } from '../game/engine.js';
 import Icon from './Icon.jsx';
 
-// Сундук: тряска → перебор предметов → вспышка и конфетти → «Забрать»
+const CHEST_W = 150, CHEST_H = 165;
+// Сундук на холсте страницы (см. paintChest). Рисуются оба вида сразу,
+// а показывается нужный — чтобы крышка открывалась без задержки на перерисовку
+function ChestPic({ open }) {
+  const ref = useRef(null);
+  useEffect(() => { paintChest(ref.current, open, CHEST_W, CHEST_H); }, [open]);
+  return <canvas ref={ref} className={open ? 'open' : 'shut'} aria-hidden="true" />;
+}
+
+// Сундук: падает и трясётся → крышка распахивается → перебор предметов → вспышка и конфетти → «Забрать».
+// Сроки фаз совпадают с анимациями в styles.css (chestDrop + rattle ≈ 0,95 с, chestPop 0,3 с)
+const SHAKE_MS = 950, OPEN_MS = 300;
 export default function ChestScreen({ chest }) {
-  const [phase, setPhase] = useState('closed'); // closed | rolling | revealed
+  const [phase, setPhase] = useState('closed'); // closed | opening | rolling | revealed
   const [rc, setRc] = useState(RAR[0].col);
   const [icon, setIcon] = useState(null);
   const [tick, setTick] = useState(0);
@@ -43,7 +54,7 @@ export default function ChestScreen({ chest }) {
       };
       step();
     };
-    timers.current.push(setTimeout(startRoll, 650));
+    timers.current.push(setTimeout(() => { go('opening'); timers.current.push(setTimeout(startRoll, OPEN_MS)); }, SHAKE_MS));
     return clear;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chest.id]);
@@ -68,7 +79,7 @@ export default function ChestScreen({ chest }) {
     return out;
   }, [phase, chest.r]);
 
-  const cls = 'overlay chest-ov' + (phase !== 'closed' ? ' opened' : '') + (phase === 'rolling' ? ' rolling' : '') + (phase === 'revealed' ? ' revealed' : '');
+  const cls = 'overlay chest-ov ' + phase + (phase !== 'closed' ? ' opened' : '');
 
   return (
     <div id="chest" className={cls} data-r={chest.r} style={{ '--rc': rc }}>
@@ -76,12 +87,14 @@ export default function ChestScreen({ chest }) {
         <div className="stage" onClick={reveal}>
           <div className="rays" />
           <div className="cglow" />
-          <img className="chest-img" alt="Сундук" src={phase === 'closed' ? CHEST_URL : CHEST_OPEN_URL} />
+          <div className="beam" />
+          <div className="chest-box" role="img" aria-label="Сундук"><ChestPic open={false} /><ChestPic open /></div>
           <div className="reveal" ref={boxRef}>
             {icon && <Icon name={icon} />}
             {phase === 'revealed' && chest.lvlTag && <span className="lvtag">{chest.lvlTag}</span>}
           </div>
           <div className="burst" />
+          <div className="wave" />
           <div className="confetti">{confetti.map((st, i) => <i key={i} style={st} />)}</div>
         </div>
         <p className="tap">Нажми, чтобы открыть сразу</p>

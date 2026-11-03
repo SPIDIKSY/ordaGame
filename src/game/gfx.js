@@ -40,6 +40,21 @@ export function rrect(x, rx, ry, w, h, r) {
   x.quadraticCurveTo(rx, ry + h, rx, ry + h - r); x.lineTo(rx, ry + r); x.quadraticCurveTo(rx, ry, rx + r, ry); x.closePath();
 }
 export function star(x, cx, cy, r) { x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * 0.45 : r; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } x.closePath(); }
+// Круглое пятно «из центра наружу»: лужи, туман, выжженная земля.
+// Строится один раз, дальше просто растягивается до нужного размера.
+// Создавать такой градиент каждый кадр дорого: браузер копит мусор и
+// раз в десяток кадров замирает, чтобы его убрать — это видно как рывки.
+export function softSprite(stops, px) {
+  px = px || 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = px;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(px / 2, px / 2, 0, px / 2, px / 2, px / 2);
+  stops.forEach((s) => g.addColorStop(s[0], s[1]));
+  x.fillStyle = g; x.fillRect(0, 0, px, px);
+  return c;
+}
+
 export function glowOn(x, col, b) { x.shadowColor = col; x.shadowBlur = b * curSS; }
 export function glowOff(x) { x.shadowBlur = 0; x.shadowColor = 'transparent'; }
 export function line(x, a, b, c, d) { x.beginPath(); x.moveTo(a, b); x.lineTo(c, d); x.stroke(); }

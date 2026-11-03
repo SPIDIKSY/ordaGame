@@ -75,7 +75,7 @@ export default function DeadScreen({ dead }) {
         </div>
         <p className="best">{dead.bestText}</p>
         <OnlineResult online={online} onAuth={setAuth} />
-        <div className="inv center">{slotList(dead.inv, true)}</div>
+        <div className="inv center">{slotList(dead.inv)}</div>
         <button id="againBtn" className="btn" type="button" onClick={game.start}>Ещё раз</button>
         <button className="btn ghost" type="button" onClick={game.menu}>Сменить героя</button>
       </div>

@@ -115,7 +115,6 @@ h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; line-hei
 h1 { font-size: clamp(34px, 11vw, 54px); color: var(--amber); text-shadow: 0 4px 0 #6b3b00, 0 10px 30px rgba(255,176,46,.35); }
 h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .lead { margin: 0; color: var(--ink-dim); font-size: 15px; line-height: 1.5; max-width: 36ch; text-wrap: balance; }
-.hero-portrait { width: 116px; height: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.6)); }
 .rules { display: flex; flex-direction: column; gap: 10px; margin: 4px 0; width: 100%; text-align: left; }
 .rule { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; font-size: 15px; line-height: 1.35; }
 .rule .ic { width: 40px; height: 40px; border-radius: 10px; padding: 8px; background: var(--panel-2); border: 1px solid var(--line); color: var(--amber); }
@@ -131,6 +130,7 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .btn:disabled { opacity: .45; }
 .btn:focus-visible, .card:focus-visible, #pauseBtn:focus-visible { outline: 3px solid var(--xp); outline-offset: 3px; }
 .best { margin: 0; color: var(--ink-dim); font-size: 14px; font-variant-numeric: tabular-nums; }
+.build { margin: 0; color: var(--ink-dim); opacity: .5; font-size: 11px; font-variant-numeric: tabular-nums; }
 
 /* карточки улучшений */
 #cards { display: flex; flex-direction: column; gap: 10px; width: 100%; }
@@ -156,7 +156,8 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
   .card .meta { justify-content: center; gap: 12px; }
 }
 
-/* сундук */
+/* сундук: падает → трясётся, из щелей бьёт свет → крышка распахивается →
+   из сундука в луче света поднимается окошко с перебором → вспышка, волна, конфетти */
 .chest-ov { --rc: var(--r0); background: radial-gradient(ellipse at 50% 38%, rgba(30,24,14,.92), rgba(4,6,10,.97)); }
 .stage { position: relative; width: 250px; max-width: 100%; height: 250px; cursor: pointer; }
 .stage > * { position: absolute; left: 50%; top: 50%; translate: -50% -50%; }
@@ -165,20 +166,42 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
   background: repeating-conic-gradient(from 0deg, var(--rc) 0deg 7deg, transparent 7deg 22deg);
   -webkit-mask: radial-gradient(circle, #000 0 14%, transparent 62%); mask: radial-gradient(circle, #000 0 14%, transparent 62%);
 }
-.cglow { width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(circle, var(--rc) 0%, transparent 66%); opacity: .3; animation: pulse .55s ease-in-out infinite alternate; }
-.chest-img { width: 150px; height: auto; animation: shake .18s linear infinite; filter: drop-shadow(0 12px 16px rgba(0,0,0,.6)); transition: transform .35s; }
+.cglow { width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(circle, var(--rc) 0%, transparent 66%); opacity: .5; transition: opacity .3s; }
+.chest-ov.closed .cglow { animation: charge .95s ease-in both; }
+.chest-box { width: 150px; height: 165px; animation: chestDrop .45s cubic-bezier(.3,1.4,.5,1) both, rattle .45s .5s ease-in forwards; transition: transform .4s cubic-bezier(.3,1.4,.5,1); }
+.chest-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 12px 16px rgba(0,0,0,.6)); }
+.chest-box .open, .chest-ov.opened .chest-box .shut { visibility: hidden; }
+.chest-ov.opened .chest-box .open { visibility: visible; }
+.chest-ov.opening .chest-box { animation: chestPop .3s ease-out; }
+.chest-ov.rolling .chest-box, .chest-ov.revealed .chest-box { animation: none; transform: translateY(62px) scale(.72); }
+/* луч света из открытого сундука: снизу у крышки, вверх до окошка */
+.beam {
+  width: 64px; height: 200px; translate: -50% calc(-100% + 18px); border-radius: 32px; pointer-events: none;
+  background: linear-gradient(to top, var(--rc), transparent); filter: blur(7px); opacity: 0;
+  transform-origin: 50% 100%; transform: scaleY(.1); transition: opacity .25s, transform .35s ease-out;
+}
+.chest-ov.opening .beam, .chest-ov.rolling .beam { opacity: .55; transform: none; }
 .reveal {
   width: 96px; height: 96px; padding: 16px; border-radius: 24px;
   background: radial-gradient(circle at 50% 30%, #2a3448, #0b1018); border: 2px solid var(--rc); color: var(--rc);
   box-shadow: 0 0 40px -2px var(--rc), inset 0 0 20px -8px var(--rc);
-  opacity: 0; transform: translateY(20px) scale(.2); transition: transform .5s cubic-bezier(.2,1.6,.4,1), opacity .2s;
+  opacity: 0; transform: translateY(50px) scale(.2);
+  transition: transform .45s cubic-bezier(.2,1.6,.4,1), opacity .2s, border-color .06s, color .06s, box-shadow .06s;
 }
 .reveal .lvtag { position: absolute; right: -8px; top: -8px; padding: 2px 7px; border-radius: 9px; background: var(--rc); color: #1b1203; font-size: 11px; font-weight: 600; }
+.chest-ov.rolling .reveal, .chest-ov.revealed .reveal { opacity: 1; transform: translateY(-40px) scale(1); }
+.reveal.tick { animation: tick .14s ease-out; }
+.chest-ov.rolling .rays { opacity: .32; animation: spin 2.5s linear infinite; }
+.chest-ov.rolling .cglow { opacity: .6; }
 .chest-ov.revealed .rays { opacity: .5; animation: spin 16s linear infinite; }
-.chest-ov.revealed .cglow { opacity: .55; animation: none; width: 250px; height: 250px; }
-.chest-ov.revealed .chest-img { animation: none; transform: translateY(58px) scale(.7); }
-.chest-ov.revealed .reveal { opacity: 1; transform: translateY(-40px) scale(1); }
-.chest-ov[data-r="3"] .chest-img, .chest-ov[data-r="4"] .chest-img { animation-duration: .1s; }
+.chest-ov.revealed .cglow { opacity: .55; width: 250px; height: 250px; }
+.chest-ov.revealed .reveal { animation: landed .5s ease-out; }
+.burst { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, var(--rc) 40%, transparent 70%); opacity: 0; pointer-events: none; }
+.chest-ov.revealed .burst { animation: burstOut .7s ease-out; }
+.wave { width: 70px; height: 70px; margin-top: -40px; border-radius: 50%; border: 3px solid var(--rc); opacity: 0; pointer-events: none; }
+.chest-ov.revealed .wave { animation: waveOut .65s ease-out; }
+.confetti { width: 0; height: 0; pointer-events: none; }
+.confetti i { position: absolute; left: -4px; top: -3px; width: 8px; height: 5px; border-radius: 2px; opacity: 0; animation: conf 1.1s cubic-bezier(.15,.7,.3,1) forwards; }
 .cinfo { display: flex; flex-direction: column; align-items: center; gap: 10px; visibility: hidden; opacity: 0; transform: translateY(10px); transition: opacity .3s .2s, transform .3s .2s, visibility 0s .2s; }
 .chest-ov.revealed .cinfo { visibility: visible; opacity: 1; transform: none; }
 .rar { margin: 0; color: var(--rc); font-size: 13px; letter-spacing: .22em; text-transform: uppercase; font-weight: 600; }
@@ -186,9 +209,21 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .chest-ov[data-r="4"] h2 { color: #ffd36a; text-shadow: 0 0 24px rgba(255,176,46,.6); }
 .tap { margin: 0; color: var(--ink-dim); font-size: 14px; }
 .chest-ov.revealed .tap { display: none; }
-@keyframes shake { 0% { transform: rotate(-3deg) translateX(-2px); } 50% { transform: rotate(3deg) translateX(2px); } 100% { transform: rotate(-3deg) translateX(-2px); } }
-@keyframes pulse { from { transform: scale(.85); opacity: .2; } to { transform: scale(1.05); opacity: .45; } }
+@keyframes chestDrop { from { transform: translateY(-170px) scale(.6); opacity: 0; } 50% { opacity: 1; } to { transform: none; } }
+/* тряска нарастает и заканчивается приседанием — с него начинается прыжок крышки */
+@keyframes rattle {
+  0% { transform: none; } 15% { transform: rotate(-2deg); } 30% { transform: rotate(2.5deg); }
+  45% { transform: rotate(-4deg) translateY(-2px); } 60% { transform: rotate(5deg) translateY(-4px); }
+  75% { transform: rotate(-7deg) translateY(-6px) scale(1.04); } 100% { transform: scale(1.12, .86); }
+}
+@keyframes chestPop { 0% { transform: scale(1.12, .86); } 45% { transform: translateY(-16px) scale(.9, 1.14); } 100% { transform: none; } }
+@keyframes charge { from { opacity: .08; transform: scale(.55); } to { opacity: .8; transform: scale(1.2); } }
+@keyframes landed { 0% { scale: 1.25; } 60% { scale: .94; } 100% { scale: 1; } }
+@keyframes waveOut { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(5); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes tick { from { scale: 1.2; } to { scale: 1; } }
+@keyframes burstOut { 0% { opacity: 1; transform: scale(.5); } 100% { opacity: 0; transform: scale(9); } }
+@keyframes conf { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 70px)) rotate(var(--rot)); } }
 
 /* снаряжение на паузе и в итогах */
 .invlist { display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; max-height: 46vh; overflow-y: auto; }
@@ -212,21 +247,13 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .bb i { display: block; height: 100%; background: linear-gradient(90deg, #b14cff, #ff4a8a); transform-origin: left; box-shadow: 0 0 10px #b14cff; transition: transform .12s; }
 
 /* выбор героя */
-.heroes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 540px; }
-@media (max-width: 560px) { .heroes { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 360px; } .hcard img { max-width: 46px; } }
 .hcard {
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px 7px; min-width: 0;
   border-radius: 14px; background: var(--panel-2); border: 1.5px solid var(--line); color: var(--ink-dim);
   font: 600 11px var(--font-body); cursor: pointer; transition: transform .15s, border-color .15s;
 }
-.hcard img { width: 100%; max-width: 52px; height: auto; filter: drop-shadow(0 6px 8px rgba(0,0,0,.5)); }
 .hcard.sel { border-color: var(--amber); color: var(--ink); background: linear-gradient(180deg, #2b2414, var(--panel)); box-shadow: 0 0 22px -8px var(--amber); transform: translateY(-3px); }
-.hcard.sel img { animation: floaty 2.4s ease-in-out infinite; }
 .hcard:focus-visible { outline: 3px solid var(--xp); outline-offset: 2px; }
-.hero-info { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 58px; }
-.hero-info p { margin: 0; color: var(--ink-dim); font-size: 14px; line-height: 1.4; max-width: 34ch; text-wrap: balance; }
-.hero-info .wpn { display: inline-flex; align-items: center; gap: 6px; color: var(--amber); font-weight: 600; font-size: 14px; }
-.hero-info .wpn .ico { width: 18px; height: 18px; }
 
 /* слоты в HUD: 5 оружий | 5 реликвий */
 .hudslots { flex-wrap: nowrap; gap: 5px; align-items: center; }
@@ -238,21 +265,7 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .timer.doom { color: #ff5466; text-shadow: 0 0 14px rgba(255,40,70,.7); animation: doomPulse 1s ease-in-out infinite; }
 @keyframes doomPulse { 50% { transform: scale(1.08); } }
 
-/* сундук: перебор предметов, вспышка, конфетти */
-.chest-ov .reveal { transition: transform .35s cubic-bezier(.2,1.6,.4,1), opacity .2s, border-color .06s, color .06s, box-shadow .06s; }
-.chest-ov.rolling .reveal { opacity: 1; transform: translateY(-40px) scale(1); }
-.chest-ov.opened .chest-img { animation: none; transform: translateY(58px) scale(.7); }
-.chest-ov.rolling .rays { opacity: .32; animation: spin 2.5s linear infinite; }
-.chest-ov.rolling .cglow { opacity: .55; animation: pulse .16s ease-in-out infinite alternate; }
-.reveal.tick { animation: tick .14s ease-out; }
-@keyframes tick { from { scale: 1.2; } to { scale: 1; } }
-.burst { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, var(--rc) 40%, transparent 70%); opacity: 0; pointer-events: none; }
-.chest-ov.revealed .burst { animation: burstOut .7s ease-out; }
-@keyframes burstOut { 0% { opacity: 1; transform: scale(.5); } 100% { opacity: 0; transform: scale(9); } }
-.confetti { width: 0; height: 0; pointer-events: none; }
-.confetti i { position: absolute; left: -4px; top: -3px; width: 8px; height: 5px; border-radius: 2px; opacity: 0; animation: conf 1.1s cubic-bezier(.15,.7,.3,1) forwards; }
-@keyframes conf { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 70px)) rotate(var(--rot)); } }
-@media (prefers-reduced-motion: reduce) { .reveal.tick, .burst, .confetti i, .timer.doom, .hcard.sel img { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .reveal.tick, .burst, .wave, .confetti i, .timer.doom, .hcard.sel img { animation: none !important; } }
 
 /* слоты оружия, редкость карточек, переброс */
 .inv:empty { display: none; }
@@ -282,27 +295,20 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .card:hover { transform: translateY(-3px); }
 .card .cico { transition: transform .2s; }
 .card:hover .cico { transform: rotate(-8deg) scale(1.1); }
-.slot.new { animation: popIn .5s ease-out; }
+
 .buff { animation: popIn .35s ease-out; }
 .overlay:not(.chest-ov) .panel { animation: panelIn .3s ease-out; }
-.hero-portrait { animation: floaty 2.6s ease-in-out infinite; }
 #startBtn, #againBtn { animation: glowPulse 1.8s ease-in-out infinite; }
 .xpbar i { background: linear-gradient(90deg, #2f86e8, #8fdcff, #2f86e8) 0 0 / 200% 100%; animation: shimmer 2.4s linear infinite; }
 .lvbadge.bump { animation: bump .55s ease-out; }
 #toast.show { animation: toastIn .35s ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
-  .chest-img, .rays, .cglow, .chest-ov.revealed .rays,
-  .card, .slot.new, .buff, .panel, .hero-portrait, #startBtn, #againBtn, .xpbar i, .lvbadge.bump, #toast.show { animation: none !important; }
+  .chest-box, .chest-ov .reveal, .rays, .cglow, .chest-ov.revealed .rays,
+  .card, .buff, .panel, .hcard.sel .heropic, #startBtn, #againBtn, .xpbar i, .lvbadge.bump, #toast.show { animation: none !important; }
 }
 
 /* ---------- живое превью героя в меню ---------- */
-.hero-stage { position: relative; width: 150px; height: 150px; margin: -4px 0 -10px; }
-.hero-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hero-stage::before {
-  content: ''; position: absolute; left: 50%; bottom: 18px; width: 120px; height: 34px; translate: -50% 0;
-  border-radius: 50%; background: radial-gradient(closest-side, rgba(255,194,74,.22), transparent);
-}
 
 /* ---------- аккаунт, окна, формы, лидерборд ---------- */
 .account-bar { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 6; display: flex; gap: 8px; }
@@ -342,6 +348,29 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 }
 .tabs button.on { background: var(--amber); color: #2a1a02; }
 
+/* выбор столбца, по которому упорядочена таблица лидеров */
+.tabs.sorts { margin-top: 6px; }
+.tabs.sorts button { flex: 1 1 0; font-size: 13px; }
+/* Кружок «?». Селектор не короче, чем у .tabs.sorts button, иначе кнопка
+   растягивается наравне с остальными и круг превращается в овал. */
+.tabs.sorts .help-btn {
+  flex: 0 0 36px; width: 36px; height: 36px; padding: 0; border: 1.5px solid var(--line);
+  border-radius: 50%; display: grid; place-items: center; line-height: 1;
+  font: 700 17px var(--font-body); color: var(--ink-dim);
+}
+.tabs.sorts .help-btn.on { background: var(--amber); border-color: var(--amber); color: #2a1a02; }
+.help-box {
+  margin-top: 8px; padding: 12px 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: rgba(0,0,0,.3); font-size: 13px; line-height: 1.5;
+}
+.help-box b { display: block; margin-bottom: 6px; color: var(--amber); }
+.help-box ul { margin: 0 0 8px; padding-left: 18px; }
+.help-box li { margin: 2px 0; }
+.help-box p { margin: 0; }
+/* столбец, по которому сейчас идёт сортировка */
+.board th.by { color: var(--amber); }
+.board td.by { color: var(--ink); font-weight: 600; }
+
 .form { display: flex; flex-direction: column; gap: 12px; }
 .form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
 .form input {
@@ -369,7 +398,7 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .board th:first-child { text-align: center; }
 .board td.p1 { color: #ffd36a; } .board td.p2 { color: #d9e2ec; } .board td.p3 { color: #e0a070; }
 .board td.who > div { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.board td.who img { width: 20px; height: auto; flex: none; }
+.board td.who .heropic { flex: none; }
 .board td.who span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board tr.me td { background: rgba(255,194,74,.12); }
 @media (max-width: 400px) {
@@ -412,3 +441,106 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .claim-card p { margin: 4px 0 10px; color: var(--ink-dim); font-size: 14px; line-height: 1.35; }
 .claim-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .claim-actions .btn { font-size: 16px; padding: 10px 18px; min-height: 44px; margin: 0; }
+
+/* ---------- HUD в одну строку (слоты снаряжения переехали в паузу) ---------- */
+.hudrow { display: flex; align-items: center; gap: 10px; }
+.hud-side { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.hud-side.right { justify-content: flex-end; }
+.bars { flex: 1; min-width: 0; max-width: 300px; display: flex; flex-direction: column; gap: 4px; }
+.bars .hpbar { max-width: none; height: 18px; }
+.bars .hpbar span { line-height: 16px; }
+.bars .xpbar { height: 7px; border-radius: 4px; }
+#toast { top: 88px; }
+.buff { padding: 2px 8px 2px 2px; }
+.gear-group { width: 100%; margin-top: 10px; }
+.gear-group h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ink-dim); text-align: left; }
+.gear-group h3 small { font-weight: 500; opacity: .7; }
+.gear-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; }
+.gear-name { font-size: 10px; line-height: 1.2; color: var(--ink-dim); text-align: center; }
+@media (max-width: 560px) {
+  #hud { padding-top: 8px; gap: 6px; }
+  .lvbadge, #pauseBtn { width: 36px; height: 36px; }
+  #pauseBtn { padding: 9px; }
+  .lvbadge b { font-size: 14px; }
+  .timer { font-size: 18px; }
+  .kills b { font-size: 15px; }
+  .hud-side { gap: 6px; }
+  #toast { top: 76px; font-size: 16px; }
+}
+
+/* ---------- настройки ---------- */
+.setting { margin-top: 14px; }
+.setting:first-of-type { margin-top: 4px; }
+.setting h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.setting .muted { margin: 6px 2px 0; font-size: 12px; line-height: 1.4; }
+
+/* ---------- главное меню ----------
+   Телефон: всё в одну колонку. ПК: слева герой на постаменте и его карточка,
+   справа выбор героя и кнопки. */
+.menu { margin: auto; width: 100%; max-width: 440px; display: grid; gap: 14px; justify-items: center; }
+.menu h1 { grid-column: 1 / -1; }
+.menu-hero, .menu-side { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; min-width: 0; }
+.menu-hero { gap: 2px; }
+.hero-stage { position: relative; width: 150px; height: 150px; margin: -6px 0 -12px; }
+.hero-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* постамент: светящийся круг под ногами героя */
+.hero-stage::before {
+  content: ''; position: absolute; left: 50%; bottom: 15%; width: 78%; height: 20%; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,194,74,.3), rgba(255,194,74,.06) 70%, transparent);
+  box-shadow: 0 0 22px -6px rgba(255,194,74,.5);
+}
+.hero-card {
+  width: 100%; padding: 14px 16px; border-radius: 18px; text-align: left; display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(180deg, rgba(23,33,41,.92), rgba(14,20,24,.92)); border: 1.5px solid var(--line);
+}
+.hero-card h2 { font-size: 26px; color: var(--ink); }
+.hero-card .role { margin: -6px 0 0; color: var(--amber); font-size: 13px; font-weight: 600; }
+.hbars { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--ink-dim); }
+.hbars i { position: relative; height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.hbars i::after {
+  content: ''; position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--k));
+  background: linear-gradient(90deg, #f5a623, #ffd56e); transition: transform .35s;
+}
+.hbars b { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 2.2em; text-align: right; }
+.hero-weapon { display: grid; grid-template-columns: 46px 1fr; gap: 12px; align-items: center; }
+.hero-weapon .slot { --rc: var(--amber); width: 46px; height: 46px; padding: 9px; border-radius: 12px; }
+.hero-weapon b { display: block; font-size: 15px; }
+.hero-weapon small { display: block; color: var(--ink-dim); font-size: 13px; line-height: 1.35; }
+.hero-card .perk { margin: 0; color: var(--ink-dim); font-size: 13px; line-height: 1.4; }
+.heroes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.hcard .heropic { filter: drop-shadow(0 6px 8px rgba(0,0,0,.5)); }
+.hcard.sel .heropic { animation: floaty 2.4s ease-in-out infinite; }
+@media (max-width: 560px) {
+  /* на телефоне карточка короче: описание оружия видно в игре */
+  .hero-weapon small { display: none; }
+  .hero-card { padding: 12px 14px; gap: 8px; }
+}
+@media (min-width: 760px) {
+  .menu { max-width: 880px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 36px; align-items: center; }
+  .hero-stage { width: 220px; height: 220px; margin: -10px 0 -20px; }
+  .menu-side { gap: 16px; }
+}
+
+/* ---------- экран нового уровня ---------- */
+.lvsub { margin: -6px 0 0; color: var(--ink-dim); font-size: 14px; }
+/* карточка подсвечена цветом своей редкости из угла */
+.card {
+  position: relative;
+  background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--cc) 16%, transparent), transparent 62%),
+    linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+.card .pips { display: flex; gap: 3px; margin: 2px 0 1px; }
+.card .pips i { width: 12px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); }
+.card .pips i.got { background: var(--cc); opacity: .5; }
+.card .pips i.next { background: var(--cc); box-shadow: 0 0 8px var(--cc); animation: pipBlink .8s ease-in-out infinite alternate; }
+@keyframes pipBlink { from { opacity: .55; } to { opacity: 1; } }
+/* подсказки клавиш — только там, где есть клавиатура */
+.khint {
+  position: absolute; top: 8px; right: 10px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px;
+  border: 1px solid var(--line); background: rgba(0,0,0,.35); color: var(--ink-dim);
+  font: 600 11px/18px var(--font-body); text-align: center;
+}
+.khint.inline { position: static; margin-left: 10px; vertical-align: middle; }
+@media (pointer: coarse) { .khint { display: none; } }
+@media (min-width: 720px) { .card .pips { justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .card .pips i.next { animation: none; } }

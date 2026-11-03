@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BlobsServer } from '@netlify/blobs/server';
 import { createHandler, nickKey } from './api.js';
+import { SCORE, scoreOf } from './anticheat.js';
 import { sqliteKv } from './kv-sqlite.js';
 import { blobsKv } from './kv-blobs.js';
 
@@ -102,6 +103,29 @@ for (const [name, mk] of kvs.list) {
     assert.equal((await s.call('GET', 'leaderboard')).body.rows[0].time, 400);
   });
 
+  test(name + ': лидерборд можно упорядочить по времени, убийствам и очкам', async () => {
+    const s = setup(mk());
+    const a = (await s.call('POST', 'register', { login: 'aaa', password: '123456' })).body.token;
+    const b = (await s.call('POST', 'register', { login: 'bbb', password: '123456' })).body.token;
+    const c = (await s.call('POST', 'register', { login: 'ccc', password: '123456' })).body.token;
+    await playFair(s, a, 'mage', 300, 2);    // 300 сек, 600 убийств
+    await playFair(s, b, 'knight', 300, 4);  // 300 сек, 1200 убийств
+    await playFair(s, c, 'cat', 400, 2);     // 400 сек, 800 убийств
+    const nicks = async (q) => (await s.call('GET', 'leaderboard' + q)).body.rows.map((x) => x.nick);
+    assert.deepEqual(await nicks(''), ['ccc', 'bbb', 'aaa'], 'по умолчанию — по времени');
+    assert.deepEqual(await nicks('?sort=time'), ['ccc', 'bbb', 'aaa']);
+    assert.deepEqual(await nicks('?sort=kills'), ['bbb', 'ccc', 'aaa']);
+    assert.deepEqual(await nicks('?sort=score'), ['ccc', 'bbb', 'aaa']);
+    assert.deepEqual(await nicks('?sort=чепуха'), ['ccc', 'bbb', 'aaa'], 'мусор в sort не ломает таблицу');
+    // места нумеруются по выбранному порядку
+    const byKills = (await s.call('GET', 'leaderboard?sort=kills')).body.rows;
+    assert.deepEqual(byKills.map((x) => x.place), [1, 2, 3]);
+    // игра берёт числа для пояснения «как считаются очки» с сервера
+    const { scoring, rows } = (await s.call('GET', 'leaderboard?sort=score')).body;
+    assert.deepEqual(scoring, SCORE);
+    assert.equal(rows[0].score, scoreOf({ time: 400, kills: 800, level: 21, bosses: 2 }));
+  });
+
   test(name + ': читы не проходят', async () => {
     const s = setup(mk());
     const tok = (await s.call('POST', 'register', { login: 'cheater', password: '123456' })).body.token;
@@ -114,6 +138,19 @@ for (const [name, mk] of kvs.list) {
     run = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
     s.tick(15);
     assert.equal((await s.call('POST', 'runs/' + run + '/beat', { time: 15, kills: 99999, level: 2, bosses: 0 }, tok)).status, 422);
+    // бессмертный «турист»: 5 минут без убийств, отчёты честные
+    run = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
+    let last;
+    for (let t = 15; t <= 300; t += 15) { s.tick(15); last = await s.call('POST', 'runs/' + run + '/beat', { time: t, kills: 3, level: 2, bosses: 0 }, tok); if (last.status !== 200) break; }
+    assert.equal(last.status, 422, 'без убийств долго не выжить');
+    // отчёты пачкой не засчитываются и забег не отменяют
+    run = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
+    s.tick(15);
+    assert.equal((await s.call('POST', 'runs/' + run + '/beat', { time: 15, kills: 30, level: 2, bosses: 0 }, tok)).status, 200);
+    s.tick(1);
+    assert.equal((await s.call('POST', 'runs/' + run + '/beat', { time: 16, kills: 31, level: 2, bosses: 0 }, tok)).status, 429);
+    s.tick(14);
+    assert.equal((await s.call('POST', 'runs/' + run + '/beat', { time: 30, kills: 60, level: 3, bosses: 0 }, tok)).status, 200);
     const ok = (await s.call('POST', 'runs', { hero: 'mage' }, tok)).body.runId;
     s.tick(20);
     assert.equal((await s.call('POST', 'runs/' + ok + '/finish', { time: 19, kills: 30, level: 2, bosses: 0 }, tok)).status, 200);

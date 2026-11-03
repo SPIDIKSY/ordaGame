@@ -7,6 +7,7 @@
    ===================================================== */
 import { TAU, mk, rg, lg, ell, circ, rrect, glowOn, glowOff, line, mulberry } from '../gfx.js';
 import { DECOR, TILE, tile as forestTile } from './world.js';
+import { EDGE } from './edges.js';
 
 // Рисует бесшовный тайл земли 256×256
 function makeTile(seed, base, paint) {
@@ -270,11 +271,11 @@ const HELL_DECOR = [
 
 /* ---------- список местностей ---------- */
 export const BIOMES = [
-  { id: 'forest', name: 'Ночной лес', tile: forestTile, decor: DECOR, density: 0.17, air: 'fireflies', tint: null },
-  { id: 'grave', name: 'Старое кладбище', tile: graveTile, decor: GRAVE_DECOR, density: 0.2, air: 'fog', tint: 'rgba(80,60,140,.10)' },
-  { id: 'desert', name: 'Пустоши', tile: desertTile, decor: DESERT_DECOR, density: 0.13, air: 'dust', tint: 'rgba(255,170,60,.07)' },
-  { id: 'snow', name: 'Ледяная тундра', tile: snowTile, decor: SNOW_DECOR, density: 0.15, air: 'snow', tint: 'rgba(120,180,255,.08)' },
-  { id: 'hell', name: 'Пекло', tile: hellTile, decor: HELL_DECOR, density: 0.15, air: 'embers', tint: 'rgba(255,60,20,.08)' }
+  { id: 'forest', name: 'Ночной лес', tile: forestTile, decor: DECOR, density: 0.17, air: 'fireflies', tint: null, edge: EDGE.forest, light: 'cyan' },
+  { id: 'grave', name: 'Старое кладбище', tile: graveTile, decor: GRAVE_DECOR, density: 0.2, air: 'fog', tint: 'rgba(80,60,140,.10)', edge: EDGE.grave, light: 'purple' },
+  { id: 'desert', name: 'Пустоши', tile: desertTile, decor: DESERT_DECOR, density: 0.13, air: 'dust', tint: 'rgba(255,170,60,.07)', edge: EDGE.desert, light: 'amber' },
+  { id: 'snow', name: 'Ледяная тундра', tile: snowTile, decor: SNOW_DECOR, density: 0.15, air: 'snow', tint: 'rgba(120,180,255,.08)', edge: EDGE.snow, light: 'blue' },
+  { id: 'hell', name: 'Пекло', tile: hellTile, decor: HELL_DECOR, density: 0.15, air: 'embers', tint: 'rgba(255,60,20,.08)', edge: EDGE.hell, light: 'orange' }
 ];
 export const BIOME_EVERY = 120;      // смена местности каждые 2 минуты
 export const HELL = BIOMES.length - 1;

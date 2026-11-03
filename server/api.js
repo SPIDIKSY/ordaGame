@@ -6,7 +6,7 @@
    Хранилище — простое «ключ → значение» (kv), см. kv-sqlite.js и kv-blobs.js
    ===================================================== */
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
-import { parseReport, checkReport, scoreOf } from './anticheat.js';
+import { parseReport, checkReport, beatTooSoon, scoreOf, SCORE } from './anticheat.js';
 
 export const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat'];
 const SESSION_DAYS = 30;
@@ -93,13 +93,21 @@ export function createHandler({ kv, now = () => Date.now() }) {
     }
     throw new Error('board busy');
   }
-  function rowsOf(board, hero) {
+  // Порядок в таблице. Главный столбец выбирает игрок, остальные идут
+  // следом как запасные — чтобы при равных числах порядок был устойчивым.
+  const SORTS = {
+    time: ['time', 'kills', 'score'],
+    kills: ['kills', 'time', 'score'],
+    score: ['score', 'time', 'kills']
+  };
+  function rowsOf(board, hero, sort) {
+    const by = SORTS[sort] || SORTS.time;
     const rows = [];
     for (const id in board.users) {
       const u = board.users[id], r = hero ? u.heroes[hero] : u.all;
       if (r) rows.push({ userId: id, nick: u.nick, ...r });
     }
-    rows.sort((a, b) => b.time - a.time || b.kills - a.kills || b.score - a.score || a.at - b.at);
+    rows.sort((a, b) => b[by[0]] - a[by[0]] || b[by[1]] - a[by[1]] || b[by[2]] - a[by[2]] || a.at - b.at);
     return rows.map((r, i) => ({ place: i + 1, ...r }));
   }
   async function placeAfter(user, run) {
@@ -201,6 +209,7 @@ export function createHandler({ kv, now = () => Date.now() }) {
       if (!run || !owns(o, run) || run.status !== 'active') return json(404, { error: 'Забег не найден' });
       const act = await kv.get('active/' + o.key);
       if (!act || act.value.runId !== runId) return json(404, { error: 'Забег уже не активен' });
+      if (beatTooSoon(run, now())) return json(429, { error: 'Слишком частые отчёты' });
       const r = parseReport(body);
       if (!r) return json(400, { error: 'Плохие данные' });
       const t = now(), why = checkReport(run, t, r, false);
@@ -244,8 +253,11 @@ export function createHandler({ kv, now = () => Date.now() }) {
     'GET leaderboard': async (req, url) => {
       const hero = HEROES.includes(url.searchParams.get('hero')) ? url.searchParams.get('hero') : null;
       const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
-      const rows = rowsOf(await readBoard(), hero);
-      return json(200, { rows: rows.slice(0, limit), total: rows.length });
+      const sort = url.searchParams.get('sort');
+      const rows = rowsOf(await readBoard(), hero, sort);
+      // scoring — чтобы игра могла показать «как считаются очки» и не хранила
+      // эти числа у себя второй раз
+      return json(200, { rows: rows.slice(0, limit), total: rows.length, scoring: SCORE });
     }
   };
 
