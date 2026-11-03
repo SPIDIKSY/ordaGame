@@ -64,6 +64,8 @@ export function drawOverlay(now) {
     ctx.globalAlpha = 1;
   }
   if (g.doom && redVig) { ctx.globalAlpha = 0.4 + 0.15 * Math.sin(now / 300); ctx.drawImage(redVig, 0, 0, W, H); ctx.globalAlpha = 1; }
+  // часы вечности: время замерло — экран слегка синеет
+  if (g.timeStop > 0) { ctx.fillStyle = 'rgba(120,180,255,' + (0.16 * Math.min(1, g.timeStop / 0.4)).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
   if (g.hurtFx > 0 && redVig) { ctx.globalAlpha = Math.min(1, g.hurtFx / 0.4); ctx.drawImage(redVig, 0, 0, W, H); ctx.globalAlpha = 1; }
   if (g.flash > 0) { ctx.fillStyle = 'rgba(255,244,220,' + Math.min(0.7, g.flash * 1.8).toFixed(2) + ')'; ctx.fillRect(0, 0, W, H); }
 

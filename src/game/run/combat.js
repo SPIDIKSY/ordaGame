@@ -12,6 +12,7 @@ import { G } from './state.js';
 import { toast, burst, pop, DMG_COL } from './fx.js';
 import { spawnAt } from './enemies.js';
 import { die } from './session.js';
+import { onHit, onKill, onHurt } from './legend.js';
 
 /* --- опыт, урон, смерть --- */
 export function addXp(v) {
@@ -67,6 +68,7 @@ export function hurtPlayer(d, src, label) {
   g.hurtFx = 0.4; g.shake = Math.max(g.shake, 0.12);
   // броня срезает не больше 65% удара
   p.hp -= Math.max(d * 0.35, d - p.armor); p.inv = 0.3; p.hurt = 0.25;
+  onHurt();
   burst(p.x, p.y, '#ff6b6b', 6, 120);
   if (src && p.thorns > 0) hitEnemy(src, p.thorns * (1 + p.b.dmg), 0, 0, true, true);
   if (p.hp <= 0) {
@@ -85,6 +87,7 @@ export function hurtPlayer(d, src, label) {
 export function killEnemy(e) {
   const g = G, p = g.p;
   e.dead = true; g.kills++;
+  onKill(e);
   if (e.T.boss) g.bossKills++;
   if (g.corpses.length < 70) g.corpses.push({ x: e.x, y: e.y, img: SPR[e.T.key].w[0], flip: p.x < e.x ? -1 : 1, sc: e.scale, t: 0, life: e.T.boss ? 0.6 : 0.32, fly: !!e.T.fly });
   burst(e.x, e.y, e.T.pc, e.T.boss ? 34 : e.elite ? 18 : 7, e.T.boss ? 270 : 140);
@@ -116,5 +119,6 @@ export function hitEnemy(e, d, kx, ky, quiet, noCrit) {
     const col = crit ? DMG_COL.crit : G.buffs.rage > 0 ? DMG_COL.rage : e.T.armored ? DMG_COL.armor : DMG_COL.normal;
     pop(e.x, e.y - e.r, Math.round(d) + (crit ? '!' : ''), col, crit, crit ? 'rgba(70,0,10,.95)' : null);
   }
+  onHit(e, d, crit);
   if (e.hp <= 0) killEnemy(e);
 }
