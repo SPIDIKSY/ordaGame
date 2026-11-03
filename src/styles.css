@@ -566,3 +566,17 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 @media (pointer: coarse) { .khint { display: none; } }
 @media (min-width: 720px) { .card .pips { justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { .card .pips i.next { animation: none; } }
+
+/* ---------- узор на фоне карточки: сразу видно, оружие это, реликвия или характеристика ---------- */
+.card { overflow: hidden; isolation: isolate; }
+.card::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: var(--pat); background-size: 92px 92px; background-position: center;
+  opacity: .13;
+  -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,.35), #000 45%);
+  mask-image: linear-gradient(90deg, rgba(0,0,0,.35), #000 45%);
+}
+.card.k-weapon::before { opacity: .2; }
+.card.k-relic::before { opacity: .17; }
+.card.k-weapon { border-width: 2px; }
+@media (min-width: 720px) { .card::before { -webkit-mask-image: none; mask-image: none; } }

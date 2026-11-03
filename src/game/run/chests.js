@@ -4,7 +4,7 @@
 import { RAR, scaleEff, addEff, effText, ITEMS, MAX_WEAPONS, WMAX, WEAPONS, WDEF, WEIGHTS } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
-import { state, G, setState } from './state.js';
+import { state, G, setState, resumePlay } from './state.js';
 import { applyEff } from './player.js';
 import { toast } from './fx.js';
 import { openLevelUp } from './levelup.js';
@@ -68,7 +68,7 @@ export function takeChest() {
   applyReward(curReward);
   const rw = curReward; curReward = null;
   ui.set({ chest: null });
-  setState('play');
+  resumePlay();
   toast(rw.type === 'weapon' ? rw.wp.name + (rw.lvl > 1 ? ': уровень ' + rw.lvl : ' в деле!') : rw.it.name + ': ' + effText(rw.eff));
   if (G.pending > 0) openLevelUp();
 }

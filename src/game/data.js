@@ -167,10 +167,10 @@ HEROES.forEach((h) => { HDEF[h.id] = h; });
 
 export const TYPES = [
   { key: 'slime',   name: 'Слизень',       from: 0,   hp: 18,  spd: 52,  dmg: 6,  r: 11, xp: 1,  fps: 6,  pc: '#8ee07a' },
-  { key: 'bat',     name: 'Летучая мышь',  from: 40,  hp: 12,  spd: 112, dmg: 5,  r: 9,  xp: 1,  fps: 14, pc: '#a47be8', fly: true },
-  { key: 'spider',  name: 'Паук',          from: 65,  hp: 20,  spd: 96,  dmg: 7,  r: 10, xp: 2,  fps: 10, pc: '#c26bff', ai: 'zigzag' },
-  { key: 'brute',   name: 'Рогач',         from: 90,  hp: 75,  spd: 50,  dmg: 12, r: 16, xp: 4,  fps: 6,  pc: '#ff9a4a' },
-  { key: 'jelly',   name: 'Студень',       from: 115, hp: 60,  spd: 46,  dmg: 9,  r: 15, xp: 3,  fps: 5,  pc: '#8fd0ff', split: true },
+  { key: 'bat',     name: 'Летучая мышь',  from: 55,  hp: 12,  spd: 112, dmg: 5,  r: 9,  xp: 1,  fps: 14, pc: '#a47be8', fly: true },
+  { key: 'spider',  name: 'Паук',          from: 85,  hp: 20,  spd: 96,  dmg: 7,  r: 10, xp: 2,  fps: 10, pc: '#c26bff', ai: 'zigzag' },
+  { key: 'brute',   name: 'Рогач',         from: 110, hp: 75,  spd: 50,  dmg: 12, r: 16, xp: 4,  fps: 6,  pc: '#ff9a4a' },
+  { key: 'jelly',   name: 'Студень',       from: 130, hp: 60,  spd: 46,  dmg: 9,  r: 15, xp: 3,  fps: 5,  pc: '#8fd0ff', split: true },
   { key: 'ghost',   name: 'Призрак',       from: 150, hp: 55,  spd: 86,  dmg: 10, r: 12, xp: 4,  fps: 5,  pc: '#bff1ff', fly: true },
   { key: 'imp',     name: 'Пороховой бес', from: 185, hp: 40,  spd: 120, dmg: 16, r: 11, xp: 4,  fps: 8,  pc: '#ff7a4a', ai: 'bomber', fly: true },
   { key: 'golem',   name: 'Лавовый голем', from: 220, hp: 260, spd: 42,  dmg: 20, r: 23, xp: 14, fps: 4,  pc: '#ff8a3a' },

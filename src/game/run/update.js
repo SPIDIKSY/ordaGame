@@ -5,7 +5,7 @@ import { TAU, rnd } from '../gfx.js';
 import { TYPES, BOSSES, MAXE, DOOM_T, DOOM } from '../data.js';
 import { BIOMES, BIOME_EVERY, HELL } from '../sprites/biomes.js';
 import { stick, keys } from '../input.js';
-import { state, G } from './state.js';
+import { state, G, GRACE_RAMP } from './state.js';
 import { toast, burst, pop, addFx } from './fx.js';
 import { spawnDist, pickType, spawnEnemy, enemyAI, separate } from './enemies.js';
 import { addXp, usePickup, hurtPlayer, hitEnemy } from './combat.js';
@@ -22,6 +22,13 @@ import { makeMiniboss } from './elites.js';
 const moveDir = { ix: 0, iy: 0 };
 
 export function update(dt) {
+  // передышка после выбора: сначала стоп, потом плавный разгон до нормальной скорости
+  if (G.grace > 0) {
+    const left = G.grace;
+    G.grace = Math.max(0, left - dt);
+    dt *= left > GRACE_RAMP ? 0 : 1 - left / GRACE_RAMP;
+    if (dt <= 0) return;
+  }
   const g = G, p = g.p, t = (g.t += dt);
   if (t >= g.run.nextBeat) { g.run.nextBeat += 15; sendBeat(g); }
   movePlayer(dt, g, p);
@@ -96,7 +103,8 @@ function updateTimeline(dt, g, p, t) {
 // Появление врагов: постоянный поток, волны, элита, боссы
 function spawnEnemies(dt, g, t) {
   const maxE = g.doom ? 320 : MAXE;
-  const rate = g.doom ? 16 + (t - DOOM_T) / 60 * 5 : Math.min(13, 0.9 + t * 0.028);
+  // в начале врагов поменьше, к пятой минуте — столько же, сколько раньше
+  const rate = g.doom ? 16 + (t - DOOM_T) / 60 * 5 : Math.min(13, 0.6 + t * 0.014 + t * t * 0.00005);
   if (g.enemies.length < maxE) {
     g.spawnAcc += rate * dt;
     while (g.spawnAcc >= 1) { g.spawnAcc -= 1; spawnEnemy(g.doom && Math.random() < 0.35 ? DOOM : pickType(t)); }
@@ -106,7 +114,7 @@ function spawnEnemies(dt, g, t) {
   if (g.waveT <= 0) {
     g.waveT = 28;
     // волна приходит с одной стороны — с той, где за экраном ещё есть поляна
-    const n = Math.min(40, Math.round(10 + t / 9)), d = spawnDist() + 10, a = arenaSpot(g.p.x, g.p.y, Math.random() * TAU, d + 30, 40).a, T = pickType(t);
+    const n = Math.min(40, Math.round(4 + t / 7)), d = spawnDist() + 10, a = arenaSpot(g.p.x, g.p.y, Math.random() * TAU, d + 30, 40).a, T = pickType(t);
     for (let i = 0; i < n && g.enemies.length < MAXE + 60; i++) spawnEnemy(T, a + rnd(-0.45, 0.45), d + Math.random() * 60);
     toast('Волна врагов!');
   }

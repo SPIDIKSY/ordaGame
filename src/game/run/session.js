@@ -8,7 +8,7 @@ import { ui } from '../store.js';
 import { api } from '../../net/api.js';
 import { refreshMe } from '../../net/account.js';
 import { stickReset, showHint, hideHint } from '../input.js';
-import { state, G, setState, setG } from './state.js';
+import { state, G, setState, setG, resumePlay } from './state.js';
 import { newGame } from './player.js';
 import { toast } from './fx.js';
 import { invSnapshot, pauseSnapshot, resetHud } from './hud.js';
@@ -73,7 +73,7 @@ export function startGame() {
 }
 export function setPause(on) {
   if (on && state === 'play') { stickReset(); hideHint(); ui.set({ pause: pauseSnapshot() }); setState('pause'); }
-  else if (!on && state === 'pause') setState('play');
+  else if (!on && state === 'pause') resumePlay();
 }
 // Возврат в главное меню (там можно сменить героя)
 export function goMenu() {

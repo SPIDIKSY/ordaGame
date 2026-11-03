@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { game } from '../game/engine.js';
 import { hud, useStore } from '../game/store.js';
 import Icon from './Icon.jsx';
+import { cardKind, cardPattern } from './cardPattern.js';
 
 // Точки прогресса: уже взятые уровни, тот, что берём сейчас, и оставшиеся
 function Pips({ now, max }) {
@@ -33,7 +34,7 @@ export default function LevelUpScreen({ choices, rerolls }) {
         <p className="lvsub">Уровень {lvl} · выбери одно улучшение</p>
         <div id="cards">
           {choices.map((c, i) => (
-            <button key={c.key} type="button" className={'card ' + c.cls} style={{ '--cc': c.cc, '--i': i }} onClick={() => game.pickChoice(i)}>
+            <button key={c.key} type="button" className={'card ' + c.cls + ' k-' + cardKind(c.cls)} style={{ '--cc': c.cc, '--i': i, '--pat': cardPattern(cardKind(c.cls), c.cc) }} onClick={() => game.pickChoice(i)}>
               <kbd className="khint">{i + 1}</kbd>
               <span className="cico"><Icon name={c.icon} /></span>
               <span className="ctext">

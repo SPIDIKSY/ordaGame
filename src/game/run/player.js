@@ -47,7 +47,7 @@ export function newGame() {
     w: { [h.weapon]: 1 }, wOrder: [h.weapon], wt: { [h.weapon]: 0.2 }, r: {}, rOrder: [], st: {}, stOrder: [], inv: {}, invOrder: [], frostA: 0,
     doom: false, doomWarn: false, doomMin: 0, vampBank: 0, eshots: [], bossN: 0,
     enemies: [], shots: [], gems: [], chests: [], parts: [], texts: [], rings: [], bolts: [], meteors: [], puddles: [], flasks: [],
-    spawnAcc: 0, nextId: 1, waveT: 25, bossT: 150, eliteT: 45, unlocked: 1,
+    spawnAcc: 0, nextId: 1, waveT: 45, bossT: 150, eliteT: 75, unlocked: 1,
     pickups: [], buffs: { rage: 0, haste: 0 }, flash: 0, shake: 0, corpses: [], fx: [],
     lvlFx: 0, lvlArm: false, hurtFx: 0, dustT: 0, bladeN: 0, bladeR: 64, bossKills: 0,
     run: { id: null, chain: Promise.resolve(), nextBeat: 15, rejected: null },

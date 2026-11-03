@@ -8,6 +8,7 @@ import { GLOW } from '../sprites/world.js';
 import { SLAM_CAST } from '../run/enemies.js';
 import { ELITE_MODS } from '../run/elites.js';
 import { drawHeroArm } from '../sprites/heroes/index.js';
+import { GRACE_FREEZE, GRACE_RAMP } from '../run/state.js';
 import { ctx, G, dpr, hx, hy, heroSpr, cx, cy, inView, blitGlow } from './frame.js';
 
 // Враги в кадре по высоте: кто ниже на экране — тот ближе и рисуется поверх.
@@ -134,6 +135,14 @@ function drawPlayer(now) {
     ctx.globalCompositeOperation = 'lighter';
     blitGlow(GLOW[L.glow], gx, gy, 26 + Math.sin(now / 160) * 3 + tip.fl * 40, 0.5 + tip.fl * 0.45);
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+  // передышка после выбора: кольцо сжимается к герою, пока мир снова разгоняется
+  if (G.grace > 0) {
+    const k = Math.min(1, G.grace / (GRACE_FREEZE + GRACE_RAMP));
+    ctx.strokeStyle = 'rgba(255,214,110,' + (0.25 + 0.6 * k).toFixed(2) + ')'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(x, y + 4, 26 + 46 * k, (26 + 46 * k) * 0.8, 0, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.4 * k).toFixed(2) + ')'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(x, y + 4, 20 + 30 * k, (20 + 30 * k) * 0.8, 0, 0, TAU); ctx.stroke();
   }
   if (p.hp < p.maxHp) {
     ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - 19, y + 27, 38, 6);

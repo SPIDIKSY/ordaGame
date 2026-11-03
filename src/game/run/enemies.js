@@ -28,7 +28,7 @@ export function pickType(t) {
   for (let i = 0; i < TYPES.length; i++) {
     const T = TYPES[i];
     if (t < T.from) { w.push(0); continue; }
-    const x = Math.max(0.22, Math.min(1, 1.25 - (t - T.from) / 260));
+    const x = Math.max(0.22, Math.min(1, 1.25 - (t - T.from) / 260)) * (T.ai === 'ranged' ? 0.5 : 1);
     w.push(x); tot += x;
   }
   let r = Math.random() * tot;
@@ -59,10 +59,13 @@ export function spawnAt(T, x, y) {
 }
 // Снаряды врагов: скорость (пикс/с), доля урона врага и размер. Подобрано так, чтобы
 // от одиночного выстрела можно было увернуться, а толпа стрелков не убивала мгновенно.
-const ESHOT = { arrow: { sp: 220, dmg: 0.45, r: 6 }, web: { sp: 200, dmg: 0.35, r: 6 }, orb: { sp: 150, dmg: 0.35, r: 8 } };
+const ESHOT = { arrow: { sp: 220, dmg: 0.32, r: 6, life: 2.3 }, web: { sp: 200, dmg: 0.35, r: 6, life: 4 }, orb: { sp: 150, dmg: 0.35, r: 8, life: 4 } };
+// Скелет-лучник: сколько секунд целится (видна линия прицела) и как часто стреляет
+export const ARCHER_AIM = 0.55, ARCHER_CD = 3.8, ARCHER_RANGE = 380;
+const MAX_ARROWS = 14; // больше стрел в воздухе одновременно не бывает
 function eShoot(e, a, kind) {
   const S = ESHOT[kind];
-  if (G.eshots.length < 220) G.eshots.push({ x: e.x, y: e.y - 6, vx: Math.cos(a) * S.sp, vy: Math.sin(a) * S.sp, kind, r: S.r, dmg: e.dmg * S.dmg, life: 4 });
+  if (G.eshots.length < 220) G.eshots.push({ x: e.x, y: e.y - 6, vx: Math.cos(a) * S.sp, vy: Math.sin(a) * S.sp, kind, r: S.r, dmg: e.dmg * S.dmg, life: S.life });
 }
 // Пороховой бес: радиус взрыва и сколько секунд горит фитиль
 export const IMP_R = 72, IMP_FUSE = 0.9;
@@ -85,7 +88,16 @@ export function enemyAI(e, d, mx, my, dt) {
   switch (T.ai || T.ab) {
     case 'zigzag': { const s = Math.sin(g.t * 6 + e.ph * 3) * 0.9; e.mvx = mx - my * s; e.mvy = my + mx * s; return 1; }
     case 'ranged':
-      if (e.atk <= 0 && d < 430) { e.atk = 3; eShoot(e, Math.atan2(p.y - e.y, p.x - e.x), 'arrow'); }
+      // сначала натягивает лук и целится — в это время стоит, и видна линия прицела
+      if (e.aim > 0) {
+        e.aim -= dt;
+        if (e.aim <= 0) {
+          let arrows = 0; for (let i = 0; i < G.eshots.length; i++) if (G.eshots[i].kind === 'arrow') arrows++;
+          if (arrows < MAX_ARROWS) eShoot(e, Math.atan2(p.y - e.y, p.x - e.x), 'arrow');
+        }
+        return 0;
+      }
+      if (e.atk <= 0 && d < ARCHER_RANGE) { e.atk = ARCHER_CD; e.aim = ARCHER_AIM; return 0; }
       if (d < 200) { e.mvx = -mx; e.mvy = -my; return 0.8; }
       if (d < 270) { e.mvx = -my; e.mvy = mx; return 0.6; }
       return 1;
