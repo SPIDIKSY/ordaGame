@@ -14,7 +14,7 @@ const weaponSlot = (id) => ({ key: 'w:' + id, icon: WDEF[id].icon, col: RAR[4].c
 const relicSlot = (id) => ({ key: 'r:' + id, icon: RDEF[id].icon, col: RCOL, badge: G.r[id] >= RMAX ? 'MAX' : String(G.r[id]), name: RDEF[id].name, title: RDEF[id].name + ' · ур. ' + G.r[id] });
 const itemSlot = (id) => {
   const it = ITEMS.find((q) => q.id === id), k = G.inv[id];
-  return { key: 'i:' + id, icon: it.icon, col: RAR[k.best].col, badge: k.count > 1 ? '×' + k.count : '', name: it.name, title: it.name + ': ' + effText(k.total) };
+  return { key: 'i:' + id, icon: it.icon, col: RAR[k.best].col, badge: k.count > 1 ? '×' + k.count : '', name: it.name, title: it.name + ': ' + (it.desc || effText(k.total)) };
 };
 // Для итогов забега: пустые места показываем, чтобы было видно, сколько слотов осталось
 export function invSnapshot() {

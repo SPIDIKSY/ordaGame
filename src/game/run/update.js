@@ -16,6 +16,7 @@ import { sendBeat } from './session.js';
 import { compact, alive, corpseVisible, notDead, notTaken, ringVisible } from './compact.js';
 import { clampToArena, arenaSpot } from './arena.js';
 import { makeMiniboss } from './elites.js';
+import { tickLegend } from './legend.js';
 
 // Направление, куда бежит герой в этом кадре: нужно и движению, и искрам от ускорения.
 // Один объект на всю игру, а не новый на каждый кадр.
@@ -41,6 +42,7 @@ export function update(dt) {
   moveEnemyShots(dt, g, p);
   collectLoot(dt, g, p);
   tickBuffs(dt, g, p);
+  tickLegend(dt);
   const chestHit = touchChests(dt, g, p);
   cleanupWorld(dt, g);
   levelUpOrChest(g, p, chestHit);
@@ -135,8 +137,9 @@ function moveEnemies(dt, g, p) {
   for (let i = 0; i < g.enemies.length; i++) {
     const e = g.enemies[i];
     const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
-    let sp = e.spd * (e.slow > 0 ? 0.5 : 1), mx = dx / d, my = dy / d;
-    if (e.T.ai || e.T.ab || e.mod) {
+    let sp = e.spd * (e.frozen > 0 ? 0 : e.slow > 0 ? 0.5 : 1), mx = dx / d, my = dy / d;
+    // замороженный враг не двигается, не колдует и не стреляет
+    if ((e.T.ai || e.T.ab || e.mod) && !(e.frozen > 0)) {
       sp *= enemyAI(e, d, mx, my, dt);
       if (e.mvx !== undefined) { mx = e.mvx; my = e.mvy; e.mvx = undefined; }
     }
@@ -149,8 +152,9 @@ function moveEnemies(dt, g, p) {
     if (e.hitCd > 0) e.hitCd -= dt;
     if (e.bladeCd > 0) e.bladeCd -= dt;
     if (e.slow > 0) e.slow -= dt;
+    if (e.frozen > 0) e.frozen -= dt;
     if (d > far && !e.T.boss && !e.elite) { const s = arenaSpot(p.x, p.y, Math.random() * TAU, spawnDist(), e.r); e.x = s.x; e.y = s.y; }
-    if (d < e.r + p.r && e.hitCd <= 0 && p.inv <= 0 && state === 'play') {
+    if (d < e.r + p.r && e.hitCd <= 0 && !(e.frozen > 0) && p.inv <= 0 && state === 'play') {
       e.hitCd = 0.6;
       if (Math.random() < Math.min(0.4, p.dodge)) { pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false); p.inv = 0.15; }
       else hurtPlayer(e.dmg, e);
