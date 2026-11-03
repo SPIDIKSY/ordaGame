@@ -1,7 +1,7 @@
 /* =====================================================
    НОВЫЙ УРОВЕНЬ: оружие, реликвии, характеристики, переброс
    ===================================================== */
-import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, wDesc, wLv, weaponFacts } from '../data.js';
+import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF, HDEF, wDesc, wLv, weaponFacts } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
@@ -58,9 +58,15 @@ function cardParts(c) {
 // Счётчик для ключей карточек: новый набор — новые ключи, и React заново проигрывает
 // их появление. Не Math.random: интерфейс не должен тратить игровую случайность.
 let choiceStamp = 0;
+// Способность героя на экране нового уровня: сколько дал этот уровень и сколько уже набралось
+export function growInfo() {
+  const gr = HDEF[G.hero] && HDEF[G.hero].grow;
+  if (!gr) return null;
+  return { name: gr.name, now: G.growN > 0 ? effText(gr.eff) : '', total: G.growN > 0 ? effText(scaleEff(gr.eff, G.growN)) : '' };
+}
 function publishChoices() {
   choiceStamp++;
-  ui.set({ choices: curChoices.map((c, i) => ({ ...cardParts(c), key: choiceStamp + ':' + i })), rerolls: G.rerolls });
+  ui.set({ choices: curChoices.map((c, i) => ({ ...cardParts(c), key: choiceStamp + ':' + i })), rerolls: G.rerolls, grow: growInfo() });
 }
 export function openLevelUp() {
   G.lvlArm = false; G.lvlFx = 0; hideHint();

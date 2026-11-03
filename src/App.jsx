@@ -38,7 +38,7 @@ export default function App() {
       </div>
 
       {s.screen === 'menu' && <StartScreen heroId={s.heroId} best={s.best} account={s.account} />}
-      {s.screen === 'levelup' && <LevelUpScreen choices={s.choices} rerolls={s.rerolls} />}
+      {s.screen === 'levelup' && <LevelUpScreen choices={s.choices} rerolls={s.rerolls} grow={s.grow} />}
       {s.screen === 'chest' && s.chest && <ChestScreen chest={s.chest} />}
       {s.screen === 'pause' && s.pause && <PauseScreen sections={s.pause} />}
       {s.screen === 'dead' && s.dead && <DeadScreen dead={s.dead} />}

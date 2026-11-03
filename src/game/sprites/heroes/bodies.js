@@ -410,3 +410,96 @@ export function bodyVampire(x, f, walk) {
   x.fillStyle = '#a82440'; x.fill();
   x.strokeStyle = '#2a0610'; x.lineWidth = 0.6; x.stroke();
 }
+
+// Кот Лудик — чёрный кот-игрок: жёлтые глаза, зелёный козырёк крупье, красный жилет и бабочка
+export function bodyLudik(x, f, walk) {
+  const { st, bob } = walkOf(f, walk);
+  x.translate(0, -bob);
+  // хвост трубой
+  x.lineCap = 'round';
+  const tail = () => { x.beginPath(); x.moveTo(-5, 10); x.bezierCurveTo(-13, 10, -15 - st, 0, -11.5 - st * 1.6, -6); x.stroke(); };
+  x.strokeStyle = '#000'; x.lineWidth = 5; tail();
+  x.strokeStyle = '#26282f'; x.lineWidth = 3.4; tail();
+  // лапы
+  x.fillStyle = '#22242b'; x.strokeStyle = '#000'; x.lineWidth = 0.9;
+  for (const px of [-3.5 + st * 3, 4 - st * 3]) { x.beginPath(); x.ellipse(px, 17.4 + bob, 3.6, 2.2, 0, 0, TAU); x.fill(); x.stroke(); }
+  // красный жилет поверх белой рубашки
+  robe(x, '#b8202e', '#4a0810', '#1a0306');
+  x.fillStyle = '#f2eee6'; x.beginPath(); x.moveTo(-3.4, -6.8); x.lineTo(5, -6.8); x.lineTo(2.2, 4); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = 0.5; x.stroke();
+  x.fillStyle = '#e8c070'; circ(x, 1.4, 6.4, 0.7); circ(x, 1.1, 9.6, 0.7);
+  // карман с цепочкой часов
+  x.strokeStyle = '#e8c070'; x.lineWidth = 0.6; x.beginPath(); x.moveTo(-6, 6); x.quadraticCurveTo(-3.6, 8.6, -1, 6.6); x.stroke();
+  // бабочка
+  x.fillStyle = '#111'; x.beginPath(); x.moveTo(1.4, -5.6); x.lineTo(-1.4, -7.2); x.lineTo(-1.4, -4); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(1.4, -5.6); x.lineTo(4.2, -7.2); x.lineTo(4.2, -4); x.closePath(); x.fill();
+  // уши
+  for (const [a, b, c] of [[-5.6, -14.4, -3.8], [4.4, -15.4, 7.6]]) {
+    x.beginPath(); x.moveTo(a, -14); x.lineTo((a + c) / 2 - 0.6, b - 5.2); x.lineTo(c, -15); x.closePath();
+    x.fillStyle = '#22242b'; x.fill(); x.strokeStyle = '#000'; x.lineWidth = 0.9; x.stroke();
+    x.fillStyle = '#6a3a4a'; x.beginPath(); x.moveTo(a + 0.9, -14.6); x.lineTo((a + c) / 2 - 0.5, b - 3.4); x.lineTo(c - 0.7, -15.1); x.closePath(); x.fill();
+  }
+  // чёрная морда
+  x.beginPath(); x.ellipse(1, -11.6, 7.2, 6.6, 0, 0, TAU);
+  x.fillStyle = rg(x, -1, -14, 1, 1, -11.6, 7.6, [[0, '#454852'], [1, '#14151a']]); x.fill();
+  x.strokeStyle = '#000'; x.lineWidth = 1.1; x.stroke();
+  x.fillStyle = '#2c2e36'; ell(x, 4.4, -8.6, 3.6, 2.6);
+  // жёлтые хитрые глаза со зрачком-щёлкой
+  x.fillStyle = '#ffd23a'; ell(x, 2.4, -10.9, 1.5, 1.6); ell(x, 6, -10.9, 1.5, 1.6);
+  x.fillStyle = '#111'; ell(x, 2.5, -10.9, 0.4, 1.3); ell(x, 6.1, -10.9, 0.4, 1.3);
+  x.fillStyle = '#fff'; circ(x, 2, -11.6, 0.35); circ(x, 5.6, -11.6, 0.35);
+  x.strokeStyle = '#000'; x.lineWidth = 0.7; line(x, 1, -12.6, 3.8, -12.2); line(x, 4.8, -12.2, 7.4, -12.8);
+  // нос, ухмылка, усы
+  x.fillStyle = '#e88a9a'; x.beginPath(); x.moveTo(3.4, -9); x.lineTo(5.2, -9); x.lineTo(4.3, -7.9); x.closePath(); x.fill();
+  x.strokeStyle = '#8a8c96'; x.lineWidth = 0.6;
+  x.beginPath(); x.moveTo(2.8, -7.4); x.quadraticCurveTo(4.6, -6.4, 6.4, -7.8); x.stroke();
+  x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 0.45;
+  line(x, 6.6, -8.4, 10.2, -9.2); line(x, 6.6, -7.6, 10.2, -7.4); line(x, 1.6, -8.4, -1.4, -9);
+  // зелёный козырёк крупье
+  x.fillStyle = 'rgba(40,190,90,.82)';
+  x.beginPath(); x.moveTo(-6.4, -14.6); x.quadraticCurveTo(1, -18.6, 8.6, -14.2); x.quadraticCurveTo(11.6, -13.4, 11.8, -12.4); x.quadraticCurveTo(4, -15.4, -6.6, -13.2); x.closePath(); x.fill();
+  x.strokeStyle = '#0a3a18'; x.lineWidth = 0.7; x.stroke();
+  x.strokeStyle = '#e8f0e0'; x.lineWidth = 0.9; x.beginPath(); x.moveTo(-6.4, -14.4); x.quadraticCurveTo(1, -18.2, 8.4, -14.2); x.stroke();
+}
+
+// Лилита — маленькая ласка: рыжевато-бурая спинка, светлый животик, длинный хвост и шарфик
+export function bodyLilita(x, f, walk) {
+  const { st, bob } = walkOf(f, walk);
+  x.translate(0, -bob);
+  // длинный пушистый хвост с тёмным кончиком
+  x.lineCap = 'round';
+  const tail = () => { x.beginPath(); x.moveTo(-3, 11); x.bezierCurveTo(-14, 12, -16 - st, 2, -12 - st * 1.8, -6); x.stroke(); };
+  x.strokeStyle = '#3a1e0a'; x.lineWidth = 6.2; tail();
+  x.strokeStyle = '#a8642c'; x.lineWidth = 4.4; tail();
+  x.fillStyle = '#2a160a'; circ(x, -12 - st * 1.8, -6, 2.6);
+  // лапки
+  x.fillStyle = '#7a4418'; x.strokeStyle = '#2a160a'; x.lineWidth = 0.8;
+  for (const px of [-2.8 + st * 3, 3.6 - st * 3]) { x.beginPath(); x.ellipse(px, 17.4 + bob, 3, 1.9, 0, 0, TAU); x.fill(); x.stroke(); }
+  // гибкое тело
+  x.beginPath(); x.moveTo(-5, -6); x.quadraticCurveTo(-8.4, 4, -6, 15.6); x.quadraticCurveTo(0.6, 18, 6.4, 15.4); x.quadraticCurveTo(8, 4, 4.6, -6.4); x.closePath();
+  x.fillStyle = lg(x, -7, 0, 7, 0, [[0, '#8a4a1c'], [0.6, '#b8743a'], [1, '#9a5a26']]); x.fill();
+  x.strokeStyle = '#2a160a'; x.lineWidth = 1.1; x.stroke();
+  // светлый животик
+  x.beginPath(); x.moveTo(-0.6, -5); x.quadraticCurveTo(-2.6, 5, -0.8, 14.6); x.quadraticCurveTo(3.4, 15.2, 5, 13.6); x.quadraticCurveTo(5.8, 4, 3.6, -5); x.closePath();
+  x.fillStyle = '#f6e4c4'; x.fill();
+  // красный шарфик с хвостиком
+  x.fillStyle = '#d8344a'; x.strokeStyle = '#5a0a18'; x.lineWidth = 0.7;
+  x.beginPath(); x.ellipse(0.6, -5.6, 6, 2, 0, 0, TAU); x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(-4, -5); x.lineTo(-7.6 - st, 1.4); x.lineTo(-5, 1.8); x.lineTo(-2.6, -4.4); x.closePath(); x.fill(); x.stroke();
+  // голова: вытянутая мордочка
+  x.beginPath(); x.ellipse(1.6, -11.6, 6.6, 5.6, 0, 0, TAU);
+  x.fillStyle = rg(x, 0, -14, 1, 1.6, -11.6, 7, [[0, '#c8844a'], [1, '#8a4a1c']]); x.fill();
+  x.strokeStyle = '#2a160a'; x.lineWidth = 1.1; x.stroke();
+  // светлые щёки и подбородок
+  x.fillStyle = '#f6e4c4'; ell(x, 5.4, -9.2, 3.4, 2.4); ell(x, 1.2, -8.2, 2.6, 1.6);
+  // круглые ушки
+  for (const [cx, cy] of [[-2.8, -16.2], [4.6, -16.8]]) {
+    x.fillStyle = '#8a4a1c'; circ(x, cx, cy, 2.1); x.strokeStyle = '#2a160a'; x.lineWidth = 0.8; x.beginPath(); x.arc(cx, cy, 2.1, 0, TAU); x.stroke();
+    x.fillStyle = '#e8a8a0'; circ(x, cx + 0.2, cy + 0.2, 1);
+  }
+  // блестящие глазки, нос, усики
+  x.fillStyle = '#141008'; ell(x, 3.2, -12.2, 1.2, 1.4); ell(x, 6.6, -12.4, 1.1, 1.35);
+  x.fillStyle = '#fff'; circ(x, 2.8, -12.8, 0.45); circ(x, 6.2, -13, 0.4);
+  x.fillStyle = '#2a1410'; ell(x, 8.2, -9.8, 1.1, 0.8);
+  x.strokeStyle = 'rgba(40,20,10,.7)'; x.lineWidth = 0.4; line(x, 8.6, -9.4, 11.6, -10.2); line(x, 8.6, -9, 11.6, -8.4);
+}

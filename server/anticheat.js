@@ -74,7 +74,8 @@ export function checkReport(run, now, r, final) {
   if (r.kills - run.last_kills > dtGame * KILLS_PER_SEC + KILLS_BURST) return 'слишком много убийств';
   if (r.kills > r.time * KILLS_PER_SEC + KILLS_BURST) return 'слишком много убийств';
   if (r.bosses > Math.floor(r.time / BOSS_EVERY) + 0) return 'боссов больше, чем могло появиться';
-  if (r.kills < (r.time - QUIET_SEC) * MIN_KILLS_PER_SEC) return 'слишком мало убийств для такого долгого забега';
+  // Лилита не атакует вовсе — для неё «слишком мало убийств» не бывает
+  if (run.hero !== 'lilita' && r.kills < (r.time - QUIET_SEC) * MIN_KILLS_PER_SEC) return 'слишком мало убийств для такого долгого забега';
 
   // Сколько опыта вообще можно было набрать (с большим запасом)
   const maxXp = (r.kills * 20 + r.bosses * 150) * (1 + r.time / 300) * 3 + 10;

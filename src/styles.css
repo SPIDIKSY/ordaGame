@@ -533,11 +533,9 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .hero-card .perk { margin: 0; padding-left: 14px; color: var(--ink-dim); font-size: 12px; line-height: 1.35; }
 .hero-card .perk li { margin: 1px 0; }
 .hero-card .perk li::marker { color: var(--amber); }
-/* героев 7, имя под портретом: первый ряд — 4 карточки, второй — 3 пошире.
-   Сетка из 12 долей: первые четыре занимают по 3 доли, остальные по 4 */
-.heroes { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; width: 100%; }
-.hcard { grid-column: span 3; gap: 1px; padding: 4px 2px 6px; border-radius: 12px; font-size: 12px; }
-.hcard:nth-child(n+5) { grid-column: span 4; }
+/* героев 9, имя под портретом: три ряда по три */
+.heroes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.hcard { gap: 1px; padding: 4px 2px 6px; border-radius: 12px; font-size: 12px; }
 .hcard span { font-size: 12px; }
 /* Имя подстраивается под ширину сетки героев: в ряду из четырёх на узком телефоне
    или в узкой колонке планшета «Разбойница» иначе обрезается. cqi — 1% ширины сетки */
@@ -572,6 +570,8 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 
 /* ---------- экран нового уровня ---------- */
 .lvsub { margin: -6px 0 0; color: var(--ink-dim); font-size: 14px; }
+/* способность героя, которая выросла с этим уровнем */
+.lvgrow { margin: -4px 0 0; color: var(--amber); font-size: 13px; font-weight: 600; }
 /* карточка подсвечена цветом своей редкости из угла */
 .card {
   position: relative;
@@ -625,4 +625,15 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
   .hero-weapon { grid-template-columns: 34px 1fr; }
   .hero-weapon .slot { width: 34px; height: 34px; padding: 6px; border-radius: 10px; }
   .hero-weapon small { display: none; }
+  /* 9 героев: в низком окне по 5 в ряд — два ряда вместо трёх */
+  .heroes { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .hcard { padding: 3px 1px 5px; }
+  .hcard span { font-size: clamp(8px, 2.45cqi, 12px); }
+  .hero-card .perk { font-size: 10.5px; line-height: 1.25; }
+}
+/* низкий телефон стоя: плотнее, а цифры оружия прячем — они есть в паузе и на карточках уровня */
+@media (max-height: 700px) and (orientation: portrait) {
+  .hcard { padding: 2px 1px 4px; } .menu { gap: 8px; }
+  .hero-weapon small { display: none; }
+  .hero-card .perk { font-size: 11px; line-height: 1.25; }
 }

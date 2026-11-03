@@ -34,6 +34,8 @@ export function drawShots(now) {
         const w = Math.sin(now / 80 + i + k) * 3;
         ctx.beginPath(); ctx.arc(x - s.vx * 0.025 * k - s.vy * 0.01 * w, y - s.vy * 0.025 * k + s.vx * 0.01 * w, 2.4 - k * 0.5, 0, TAU); ctx.fill();
       }
+    } else if (s.kind === 'coin') {
+      blitGlow(GLOW.gold, x, y, 26, 0.55);
     } else if (s.kind === 'soul') {
       // душа: красно-фиолетовое свечение (дымный след рисуется ниже, обычной краской)
       blitGlow(GLOW.soul, x, y, 30 + Math.sin(now / 55 + i) * 4, 0.9);
@@ -69,6 +71,13 @@ export function drawShots(now) {
       ctx.fillStyle = '#fff6d8'; ctx.beginPath(); ctx.arc(x - 1.5, y - 1.5, 4, 0, TAU); ctx.fill();
     } else if (s.kind === 'wisp') {
       ctx.fillStyle = '#f6eeff'; ctx.beginPath(); ctx.arc(x, y, 3.8, 0, TAU); ctx.fill();
+    } else if (s.kind === 'coin') {
+      // золотая монетка крутится в полёте: то видна плашмя, то ребром
+      const k = 0.2 + 0.8 * Math.abs(Math.cos(s.rot));
+      ctx.fillStyle = '#ffcc3a'; ctx.strokeStyle = '#7a5208'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(x, y, 5.2 * k + 0.6, 5.2, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      if (k > 0.5) { ctx.strokeStyle = 'rgba(122,82,8,.6)'; ctx.beginPath(); ctx.ellipse(x, y, 3.2 * k, 3.2, 0, 0, TAU); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.beginPath(); ctx.arc(x - 1.6 * k, y - 2, 1.1, 0, TAU); ctx.fill();
     } else if (s.kind === 'soul') {
       // короткий дымный след: тающие клубы позади души, потом её ядро
       const sp = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / sp, uy = s.vy / sp;

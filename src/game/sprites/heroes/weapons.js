@@ -156,3 +156,17 @@ export function drawSoulOrb(x, fl, t) {
   x.globalAlpha = 1;
   return cy;
 }
+// Золотая монетка в лапе Лудика: крутится, при броске вспыхивает
+export function drawCoin(x, fl, t) {
+  const cy = -4.6, r = 3.3, k = 0.22 + 0.78 * Math.abs(Math.cos(t * 5));
+  if (fl > 0.05) { glowOn(x, '#ffd56e', 4 + fl * 8); }
+  x.beginPath(); x.ellipse(0.6, cy, r * k, r, 0, 0, TAU);
+  x.fillStyle = lg(x, 0.6 - r, cy - r, 0.6 + r, cy + r, [[0, '#fff2a8'], [0.45, '#ffcc3a'], [1, '#b07a10']]); x.fill();
+  glowOff(x);
+  x.strokeStyle = '#7a5208'; x.lineWidth = 0.7; x.stroke();
+  if (k > 0.5) { x.strokeStyle = 'rgba(122,82,8,.7)'; x.lineWidth = 0.5; x.beginPath(); x.ellipse(0.6, cy, r * k * 0.62, r * 0.62, 0, 0, TAU); x.stroke(); }
+  x.fillStyle = 'rgba(255,255,255,.75)'; circ(x, 0.6 - r * k * 0.35, cy - r * 0.4, 0.55);
+  return cy;
+}
+// Пустая лапка (у Лилиты нет оружия)
+export function drawNothing() { return 0; }

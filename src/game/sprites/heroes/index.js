@@ -7,8 +7,8 @@
    ===================================================== */
 import { TAU, mk, tint, outline, setGlowScale, line } from '../../gfx.js';
 import { BODY_W, BODY_H, OUTLINE, SKIN1, SKIN_LINE, FUR0, FUR_LINE } from './parts.js';
-import { bodyMage, bodyKnight, bodyRogue, bodyDruid, bodyNecro, bodyCat, bodyVampire } from './bodies.js';
-import { drawStaffMage, drawSword, drawDagger, drawStaffDruid, drawStaffNecro, drawMug, drawSoulOrb } from './weapons.js';
+import { bodyMage, bodyKnight, bodyRogue, bodyDruid, bodyNecro, bodyCat, bodyVampire, bodyLudik, bodyLilita } from './bodies.js';
+import { drawStaffMage, drawSword, drawDagger, drawStaffDruid, drawStaffNecro, drawMug, drawSoulOrb, drawCoin, drawNothing } from './weapons.js';
 import { poseCaster, poseKnight, poseRogue, poseCat, mix } from './poses.js';
 
 /* ---------- описание каждого героя ---------- */
@@ -26,7 +26,12 @@ export const HERO_LOOK = {
   cat:    { body: bodyCat,    ring: '255,200,90',  glow: null,     sleeve: '#3a56b0', sleeveLine: '#0a1030', cuff: '#eef2fb', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: FUR0, handLine: FUR_LINE, atk: 0.7,
             pose: poseCat, weapon: drawMug },
   vampire: { body: bodyVampire, ring: '170,20,50', glow: 'soul', sleeve: '#4a1220', sleeveLine: '#0a0204', cuff: '#f2ecef', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#d8cede', handLine: '#4a3a52', atk: 0.32,
-            pose: (P) => poseCaster(P, 0), weapon: drawSoulOrb }
+            pose: (P) => poseCaster(P, 0), weapon: drawSoulOrb },
+  ludik:  { body: bodyLudik,  ring: '255,210,80',  glow: 'gold',   sleeve: '#b8202e', sleeveLine: '#1a0306', cuff: '#f2eee6', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#26282f', handLine: '#000', atk: 0.3,
+            pose: (P) => poseCaster(P, 0), weapon: drawCoin },
+  // scale — мини-герой: Лилита меньше остальных (ноги остаются на земле)
+  lilita: { body: bodyLilita, ring: '230,150,90',  glow: null,     sleeve: '#9a5a26', sleeveLine: '#2a160a', cuff: null, sh: [4.4, -4.8], arm: 8.6, phi0: 0.5, hand: '#7a4418', handLine: '#2a160a', atk: 0.3,
+            pose: (P) => poseCaster(P, 0), weapon: drawNothing, scale: 0.78 }
 };
 
 /**
@@ -40,6 +45,17 @@ export const HERO_LOOK = {
  */
 export function drawHeroArm(x, id, P, drawBody) {
   const L = HERO_LOOK[id] || HERO_LOOK.mage;
+  if (L.scale) {
+    // мини-герой: уменьшаем вокруг ног (они на 18 ниже центра), а точку свечения пересчитываем
+    const k = L.scale;
+    x.save(); x.translate(0, 18 * (1 - k)); x.scale(k, k);
+    const tip = drawHeroArmIn(x, L, P, drawBody);
+    x.restore();
+    return { x: tip.x * k, y: tip.y * k + 18 * (1 - k), fl: tip.fl };
+  }
+  return drawHeroArmIn(x, L, P, drawBody);
+}
+function drawHeroArmIn(x, L, P, drawBody) {
   const SX = L.sh[0], SY = L.sh[1], ARM = L.arm;
   const pose = L.pose({ ...P, phi0: L.phi0 });
   const hx = SX + Math.sin(pose.phi) * ARM, hy = SY + Math.cos(pose.phi) * ARM;

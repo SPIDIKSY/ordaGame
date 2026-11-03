@@ -102,11 +102,11 @@ export default function StartScreen({ heroId, best, account }) {
             <div className="hbars">
               <span>Здоровье</span><i style={{ '--k': barK('hp', h.hp) }} /><b>{h.hp}</b>
               <span>Скорость</span><i style={{ '--k': barK('speed', h.speed) }} /><b>{h.speed}</b>
-              <span title="Урон одного удара стартовым оружием — это число вылетает над врагом">Урон</span><i style={{ '--k': barK('hit', h.hit) }} /><b>{h.hit}</b>
+              <span title="Урон одного удара стартовым оружием — это число вылетает над врагом">Урон</span><i style={{ '--k': barK('hit', h.hit) }} /><b>{h.hitText}</b>
             </div>
             <div className="hero-weapon">
-              <span className="slot"><Icon name={Wd.icon} /></span>
-              <div><b>{Wd.name}</b><small>{h.wfacts}</small></div>
+              <span className="slot"><Icon name={Wd ? Wd.icon : 'boot'} /></span>
+              <div><b>{Wd ? Wd.name : 'Без оружия'}</b><small>{h.wfacts}</small></div>
             </div>
             {!!h.perks.length && <ul className="perk">{h.perks.map((t) => <li key={t}>{t}</li>)}</ul>}
           </div>

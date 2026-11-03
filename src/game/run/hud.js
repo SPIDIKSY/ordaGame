@@ -58,7 +58,7 @@ export function pauseSnapshot() {
   const n100 = (v) => String(Math.round(v * 100));
   const mainId = G.wOrder.includes(G.heroWeapon) ? G.heroWeapon : G.wOrder[0];
   const main = mainId ? weaponNums(mainId, G.w[mainId], p) : null;
-  const mainHit = main ? main.hit : Math.round(p.dmg);
+  const mainHit = main ? main.hit : G.wOrder.length ? Math.round(p.dmg) : 0;
   const stats = [
     { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
     { id: 'dmg', label: 'Урон', value: String(mainHit), tone: tone(p.b.dmg) },
@@ -77,7 +77,7 @@ export function pauseSnapshot() {
     { id: 'xp', label: 'Опыт', value: n100(p.xpMul), tone: tone(p.xpMul - 1) },
     { id: 'luck', label: 'Удача', value: n100(1 + p.luck), tone: tone(p.luck) },
     { id: 'vamp', label: 'Вампиризм', value: '+' + dec1(p.vamp), tone: tone(p.vamp) },
-    { id: 'dodge', label: 'Уклонение', value: pc(Math.min(0.4, p.dodge)) + '%', tone: tone(p.dodge) },
+    { id: 'dodge', label: 'Уклонение', value: pc(Math.min(p.dodgeCap, p.dodge)) + '%', tone: tone(p.dodge) },
     { id: 'thorns', label: 'Шипы', value: String(Math.round(p.thorns)), tone: tone(p.thorns) },
     { id: 'revive', label: 'Воскрешения', value: String(p.revive), tone: tone(p.revive) }
   ].map((s) => ({ ...s, hint: (UNIT[s.id] ? UNIT[s.id] + ' ' : '') + EFX[s.id].h[0].toUpperCase() + EFX[s.id].h.slice(1) + '.' }));
@@ -90,7 +90,9 @@ export function pauseSnapshot() {
     { id: 'relics', title: 'Реликвии', max: MAX_RELICS, slots: G.rOrder.map(relicSlot) },
     { id: 'items', title: 'Предметы', max: 0, slots: G.invOrder.map(itemSlot) }
   ];
-  return { stats, gear, hero: H0.name, time: fmt(G.t), level: G.level, kills: G.kills };
+  // способность героя: сколько уже выросла за уровни
+  const gr = H0.grow, grow = gr ? '«' + gr.name + '»: ' + (G.growN > 0 ? effText(scaleEff(gr.eff, G.growN)) : effText(gr.eff) + ' за каждый уровень') : '';
+  return { stats, gear, hero: H0.name, time: fmt(G.t), level: G.level, kills: G.kills, grow };
 }
 /* --- HUD: отправляем в React только когда что-то поменялось --- */
 let lastHudKey = '';

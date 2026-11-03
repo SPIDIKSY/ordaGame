@@ -10,7 +10,8 @@ export const RAR = [
   { name: 'Легендарный', col: '#ffb02e', mult: 3.2 }
 ];
 export const pct = (v) => Math.round(v * 100) + '%';
-export const dec = (v) => String(Math.round(v * 10) / 10).replace('.', ',');
+// дробь до сотых без лишних нулей: 0,05 · 0,15 · 0,8
+export const dec = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
 
 // Все бонусы описываются одинаково: { характеристика: значение }
 // t — как писать число, s — подпись к числу, n и h — название и пояснение «что это даёт»
@@ -49,7 +50,9 @@ export function addEff(into, eff) { for (const k in eff) into[k] = (into[k] || 0
 export function effText(eff) {
   return Object.keys(eff).map((k) => {
     const v = eff[k], E = EFX[k], a = Math.abs(v);
-    return (v < 0 ? '−' : '+') + (E.t === 'pct' ? Math.round(a * 100) + '%' : E.t === 'dec' ? dec(a) : Math.round(a)) + ' ' + E.s;
+    // меньше процента (0,5% крита за уровень) — с десятыми, иначе округление соврёт
+    const pv = a < 0.1 && Math.round(a * 1000) % 10 ? String(Math.round(a * 1000) / 10).replace('.', ',') : Math.round(a * 100);
+    return (v < 0 ? '−' : '+') + (E.t === 'pct' ? pv + '%' : E.t === 'dec' ? dec(a) : Math.round(a)) + ' ' + E.s;
   }).join(', ');
 }
 
@@ -140,19 +143,25 @@ export const WINFO = {
   blades:   { hit: ARR([0.9, 0.9, 1.1, 1.1, 1.35, 1.35, 1.65, 1.9, 1.9, 1.9]), n: ARR([1, 2, 2, 3, 3, 4, 5, 5, 6, 6]), spin: (l) => 3.2 + 0.15 * l },
   aura:     { hit: (l) => 0.3 + 0.15 * l, tick: 0.35 },
   soul:     { hit: (l) => 1.4 * (l >= 3 ? 1.25 : 1) * (l >= 6 ? 1.2 : 1) * (l >= 7 ? 1.18 : 1) * (l >= 9 ? 1.15 : 1), cd: (l) => 0.75 * (l >= 6 ? 0.85 : 1),
-              per: (l, A) => 1 + (l >= 2) + (l >= 5) + (l >= 8) + A, pierce: (l) => (l >= 4) + (l >= 10) }
+              per: (l, A) => 1 + (l >= 2) + (l >= 5) + (l >= 8) + A, pierce: (l) => (l >= 4) + (l >= 10) },
+  // монетка бьёт на случайный урон от 0 до hit (это наибольший урон); удача чаще даёт много — см. coinRoll
+  coin:     { hit: (l) => (50 / 14) * (l >= 2 ? 1.12 : 1) * (l >= 4 ? 1.11 : 1) * (l >= 7 ? 1.1 : 1) * (l >= 8 ? 1.09 : 1), cd: (l) => 0.8 * (l >= 6 ? 0.85 : 1),
+              per: (l, A) => 1 + (l >= 3) + (l >= 6) + (l >= 9) + A, pierce: (l) => (l >= 5) + (l >= 10), roll: true }
 };
+// Доля наибольшего урона монетки: случайно от 0 до 1; с удачей чаще ближе к 1
+// (в среднем 50% без удачи, 55% при +20% удачи, 67% при +100%)
+export const coinRoll = (luck) => Math.pow(Math.random(), 1 / (1 + Math.max(0, luck || 0)));
 // Урон за удар и урон в секунду по одной цели (если все удары попали, без критов).
 // p — характеристики героя: dmg (сила), amount (+снаряды), cdMul (перезарядка)
 export function weaponNums(id, l, p) {
   const I = WINFO[id];
   if (!I) return null;
-  const hit = p.dmg * I.hit(l) * topK(l);
+  const top = p.dmg * I.hit(l) * topK(l), hit = I.roll ? top * (1 + Math.max(0, p.luck || 0)) / (2 + Math.max(0, p.luck || 0)) : top;
   let dps;
   if (I.tick) dps = hit / I.tick;
   else if (I.spin) dps = hit * (I.n(l) + (p.amount || 0)) * I.spin(l) / (Math.PI * 2);
   else dps = hit * (I.per ? I.per(l, p.amount || 0) : 1) / (I.cd(l) * (p.cdMul || 1));
-  return { hit: Math.round(hit), dps: Math.round(dps) };
+  return { hit: Math.round(hit), dps: Math.round(dps), max: Math.round(top) };
 }
 const TOP = 'Предел: +25% урона';
 // Кража жизни Негжера: при убийстве есть шанс вылечиться и навсегда (до конца забега) поднять максимум здоровья.
@@ -185,6 +194,8 @@ export const WEAPONS = [
     lv: ['Поле шире, жжёт сильнее (+33%)', 'Поле шире, урон +25%', 'Поле шире, урон +20%', 'Поле шире, урон +17%', 'Поле шире, урон +14%', 'Поле шире, урон +12%', 'Поле шире, урон +11%', 'Поле шире, урон +10%', 'Поле шире. ' + TOP] },
   { id: 'soul', icon: 'soul', name: 'Душа', desc: 'Из героя вылетает сгусток души: сам находит ближайшего врага, догоняет и бьёт его.',
     lv: soulLv(false), lvSteal: soulLv(true) },
+  { id: 'coin', icon: 'coin', name: 'Золотая монетка', desc: 'Бросает золотые монетки в ближайшего врага. Каждая бьёт на случайный урон: от нуля до максимума. Чем больше удачи, тем чаще выпадает много.',
+    lv: ['Урон +12%', '+1 монетка (всего 2)', 'Урон +11%', 'Пробивают 1 врага насквозь', '+1 монетка (всего 3), бросает чаще', 'Урон +10%', 'Урон +9%', '+1 монетка (всего 4)', 'Пробивают до 2 врагов. ' + TOP] },
   { id: 'meteor', icon: 'meteor', name: 'Звездопад', desc: 'С неба падают метеориты на врагов и взрываются, задевая всех рядом. Падают через долю секунды после метки.',
     lv: ['+1 метеорит (всего 2), урон +25%, падают чаще', 'Урон +20%, взрыв шире, падают чаще', '+1 метеорит (всего 3), урон +17%', 'Урон +14%, взрыв шире, падают чаще', '+1 метеорит (всего 4), урон +13%', 'Урон +11%, взрыв шире, падают чаще', '+1 метеорит (всего 5), урон +10%', 'Урон +9%, взрыв шире', '+1 метеорит (всего 6). ' + TOP] },
   { id: 'frost', icon: 'flake', name: 'Ледяной веер', desc: 'Ледяные осколки разлетаются кольцом во все стороны, пробивают врагов и замедляют их.',
@@ -254,15 +265,30 @@ export const STATS = [
 // Герои (как они выглядят — см. src/game/sprites/heroes/).
 // hit и atk (урон за удар и в секунду стартовым оружием) считаются сами из таблицы WINFO — см. ниже.
 export const HEROES = [
-  { id: 'mage', name: 'Маг', role: 'Чародей: бьёт издалека по площади', weapon: 'staff', hp: 100, speed: 150, eff: { area: 0.1 } },
-  { id: 'knight', name: 'Рыцарь', role: 'Защитник: много здоровья и брони', weapon: 'whip', hp: 150, speed: 140, eff: { armor: 2 } },
-  { id: 'rogue', name: 'Разбойница', role: 'Ловкачка: самая быстрая, частые криты', weapon: 'knife', hp: 80, speed: 175, eff: { crit: 0.1 } },
-  { id: 'druid', name: 'Друид', role: 'Целитель: яд, лужи и восстановление', weapon: 'puddle', hp: 110, speed: 150, eff: { regen: 0.8, dur: 0.2 } },
-  { id: 'necro', name: 'Некромант', role: 'Призыватель: больше снарядов, но слабее каждый', weapon: 'wisp', hp: 90, speed: 145, eff: { amount: 1, dmg: -0.1 } },
-  { id: 'cat', name: 'Пивной кот', role: 'Боец ближнего боя: пивная аура вокруг', weapon: 'aura', hp: 120, speed: 145, eff: { area: 0.15, regen: 0.5 } },
+  { id: 'mage', name: 'Маг', role: 'Чародей: бьёт издалека по площади', weapon: 'staff', hp: 100, speed: 150, eff: { area: 0.1 },
+    grow: { name: 'Магия пространства', eff: { area: 0.01 } } },
+  { id: 'knight', name: 'Рыцарь', role: 'Защитник: много здоровья и брони', weapon: 'whip', hp: 150, speed: 140, eff: { armor: 2 },
+    grow: { name: 'Закалка', eff: { hp: 2 } } },
+  { id: 'rogue', name: 'Разбойница', role: 'Ловкачка: самая быстрая, частые криты', weapon: 'knife', hp: 80, speed: 175, eff: { crit: 0.1 },
+    grow: { name: 'Меткость', eff: { crit: 0.005 } } },
+  { id: 'druid', name: 'Друид', role: 'Целитель: яд, лужи и восстановление', weapon: 'puddle', hp: 110, speed: 150, eff: { regen: 0.8, dur: 0.2 },
+    grow: { name: 'Сила природы', eff: { regen: 0.03 } } },
+  { id: 'necro', name: 'Некромант', role: 'Призыватель: больше снарядов, но слабее каждый', weapon: 'wisp', hp: 90, speed: 145, eff: { amount: 1, dmg: -0.1 },
+    grow: { name: 'Тёмная сила', eff: { dmg: 0.01 } } },
+  { id: 'cat', name: 'Пивной кот', role: 'Боец ближнего боя: пивная аура вокруг', weapon: 'aura', hp: 120, speed: 145, eff: { area: 0.15, regen: 0.5 },
+    grow: { name: 'Кошачья удача', eff: { luck: 0.02 } } },
   { id: 'vampire', name: 'Негжер', role: 'Вампир: живёт за счёт убийств', weapon: 'soul', hp: 70, speed: 150,
-    eff: { armor: 1, vamp: 0.5 }, steal: true }
+    eff: { armor: 1, vamp: 0.5 }, steal: true, grow: { name: 'Жажда крови', eff: { vamp: 0.05 } } },
+  { id: 'ludik', name: 'Кот Лудик', role: 'Игрок: всё решает удача', weapon: 'coin', hp: 100, speed: 160, eff: { luck: 0.2 },
+    grow: { name: 'Фарт', eff: { luck: 0.02 } } },
+  // Мини-герой: без оружия, не растёт в уровне и ничего не подбирает — только бегает и уклоняется
+  { id: 'lilita', name: 'Лилита', role: 'Ласка: не атакует, только бегает', weapon: null, hp: 50, speed: 230, eff: { dodge: 0.5 },
+    noLevel: true, dodgeCap: 0.6, r: 11 }
 ];
+// Способность героя растёт сама с каждым новым уровнем героя (grow.eff за уровень).
+// После GROW_MAX уровней рост останавливается — игроку это не пишем: в обычном забеге
+// до этого не доходят, а в очень долгих иначе цифры улетают в небо
+export const GROW_MAX = 60;
 
 // Урон стартового оружия героя с его собственными бонусами (у некроманта +1 снаряд и −10% урона и т. п.)
 // perks — бонусы героя по факту, с цифрами: собираются из eff, поэтому всегда совпадают с игрой.
@@ -280,6 +306,7 @@ const WFACT = {
   chain:    { n: (l, A) => 4 + l + A, w: ['враг', 'врага', 'врагов'], hits: true, tag: 'молния прыгает от врага к врагу' },
   aura:     { tag: 'поле вокруг героя жжёт и замедляет' },
   soul:     { n: (l, A) => WINFO.soul.per(l, A), w: ['душа', 'души', 'душ'], tag: 'самонаведение на ближайшего врага' },
+  coin:     { n: (l, A) => WINFO.coin.per(l, A), w: ['монетка', 'монетки', 'монеток'], tag: 'урон случайный, удача повышает', range: true },
   meteor:   { n: (l, A) => 1 + Math.floor(l / 2) + A, w: ['метеорит', 'метеорита', 'метеоритов'], tag: 'взрыв по площади' },
   frost:    { n: (l, A) => 6 + 2 * l + 2 * A, w: ['осколок', 'осколка', 'осколков'], tag: 'кольцом во все стороны, замедление' },
   axe:      { n: (l, A) => 1 + Math.floor(l / 3) + A, w: ['топор', 'топора', 'топоров'], tag: 'дугой сквозь врагов' },
@@ -300,7 +327,7 @@ export function weaponFacts(id, l, p) {
     if (cd) out.push(cnt + ' раз в ' + n2(cd) + ' с');
   } else if (F.touch) out.push(hit + ' урона за касание', cnt);
   else {
-    out.push(hit + ' ' + (F.label || 'урона за удар'));
+    out.push((F.range ? '0–' : '') + hit + ' ' + (F.label || 'урона за удар'));
     out.push((F.hits ? 'бьёт ' + cnt : cnt) + (cnt ? ' ' : '') + 'раз в ' + n2(cd) + ' с');
   }
   if (F.tag) out.push(F.tag);
@@ -308,12 +335,16 @@ export function weaponFacts(id, l, p) {
 }
 HEROES.forEach((h) => {
   h.perks = h.eff ? effText(h.eff).split(', ') : [];
+  if (h.grow) h.perks.unshift('«' + h.grow.name + '»: ' + effText(h.grow.eff) + ' за каждый уровень');
   if (h.steal) h.perks.push('Кража жизни: шанс ' + pc1(STEAL.chance) + ' за убийство (душой ' + pc1(STEAL.soul).replace('%', '') + '–' + pc1(soulSteal(WMAX))
     + ', элита ×' + STEAL.elite + ', босс всегда): +' + STEAL.heal + ' здоровья и навсегда +' + STEAL.hp + ' к максимуму (босс +' + STEAL.bossHp + ')');
-  const e = h.eff || {};
-  const n = weaponNums(h.weapon, 1, { dmg: 14 * Math.max(0.4, 1 + (e.dmg || 0)), amount: e.amount || 0, cdMul: 1 / Math.max(0.5, 1 + (e.haste || 0)) });
+  const e = h.eff || {}, hp = { dmg: 14 * Math.max(0.4, 1 + (e.dmg || 0)), amount: e.amount || 0, cdMul: 1 / Math.max(0.5, 1 + (e.haste || 0)), luck: e.luck || 0 };
+  if (!h.weapon) { h.hit = 0; h.atk = 0; h.hitText = '0'; h.wfacts = 'Не атакует'; if (h.noLevel) h.perks.push('Не растёт в уровне и ничего не подбирает'); return; }
+  const n = weaponNums(h.weapon, 1, hp);
   h.hit = n.hit; h.atk = n.dps;
-  h.wfacts = weaponFacts(h.weapon, 1, { dmg: 14 * Math.max(0.4, 1 + (e.dmg || 0)), amount: e.amount || 0, cdMul: 1 / Math.max(0.5, 1 + (e.haste || 0)) });
+  // у монетки урон случайный — в карточке пишем «от и до»
+  h.hitText = WINFO[h.weapon].roll ? '0–' + n.max : String(n.hit);
+  h.wfacts = weaponFacts(h.weapon, 1, hp);
 });
 export const WDEF = {}, SDEF = {}, RDEF = {}, HDEF = {};
 WEAPONS.forEach((w) => { WDEF[w.id] = w; });
