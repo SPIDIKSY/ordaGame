@@ -14,7 +14,7 @@ function Pips({ now, max }) {
 }
 
 // Новый уровень: три карточки на выбор и переброс
-export default function LevelUpScreen({ choices, rerolls }) {
+export default function LevelUpScreen({ choices, rerolls, grow }) {
   const { lvl } = useStore(hud);
   // На компьютере можно выбирать клавишами 1, 2, 3 и перебрасывать на R
   useEffect(() => {
@@ -32,9 +32,10 @@ export default function LevelUpScreen({ choices, rerolls }) {
       <div className="panel wide">
         <h2>Новый уровень</h2>
         <p className="lvsub">Уровень {lvl} · выбери одно улучшение</p>
+        {grow && grow.now && <p className="lvgrow">«{grow.name}»: {grow.now} · всего {grow.total}</p>}
         <div id="cards">
           {choices.map((c, i) => (
-            <button key={c.key} type="button" className={'card ' + c.cls + ' k-' + cardKind(c.cls)} style={{ '--cc': c.cc, '--i': i, '--pat': cardPattern(cardKind(c.cls), c.cc) }} onClick={() => game.pickChoice(i)}>
+            <button key={c.key} type="button" className={'card ' + c.cls + ' k-' + cardKind(c.cls)} style={{ '--cc': c.cc, '--i': i, '--pat': cardPattern(cardKind(c.cls), c.cc) }} title={c.hint || undefined} onClick={() => game.pickChoice(i)}>
               <kbd className="khint">{i + 1}</kbd>
               <span className="cico"><Icon name={c.icon} /></span>
               <span className="ctext">
@@ -42,7 +43,6 @@ export default function LevelUpScreen({ choices, rerolls }) {
                 <span className="name">{c.name}</span>
                 {c.pips && <Pips now={c.pips[0]} max={c.pips[1]} />}
                 <span className="desc">{c.desc}</span>
-                {c.hint && <span className="hint">{c.hint}</span>}
               </span>
             </button>
           ))}

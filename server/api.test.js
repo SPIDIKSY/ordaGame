@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BlobsServer } from '@netlify/blobs/server';
-import { createHandler, nickKey } from './api.js';
+import { createHandler, nickKey, HEROES } from './api.js';
 import { SCORE, scoreOf } from './anticheat.js';
 import { sqliteKv } from './kv-sqlite.js';
 import { blobsKv } from './kv-blobs.js';
@@ -239,7 +239,7 @@ for (const [name, mk] of kvs.list) {
     assert.equal((await playFair(s, a.token, 'mage', 30)).status, 200);
     await s.call('POST', 'runs', { hero: 'cat' });               // гость начал и бросил
     const r = (await s.call('GET', 'heroes')).body;
-    assert.equal(r.rows.length, 7, 'все герои в списке');
+    assert.equal(r.rows.length, HEROES.length, 'все герои в списке');
     assert.equal(r.totalRuns, 4);
     const v = r.rows[0];
     assert.equal(v.hero, 'vampire', 'больше всего забегов — первый');
@@ -248,5 +248,32 @@ for (const [name, mk] of kvs.list) {
     assert.equal(Math.round(v.share * 100), 50);
     const cat = r.rows.find((x) => x.hero === 'cat');
     assert.equal(cat.runs, 1); assert.equal(cat.time, 0); assert.equal(cat.players, 0); assert.equal(cat.best, null);
+  });
+
+  test(name + ': Лилита не атакует — забег без убийств засчитывается, у других героев нет', async () => {
+    const s = setup(mk());
+    const a = (await s.call('POST', 'register', { login: 'lilita_fan', password: '123456', nick: 'Бегунья' })).body;
+    // честный забег без убийств: уровень 1, боссов нет
+    const still = async (hero) => {
+      const { body } = await s.call('POST', 'runs', { hero }, a.token);
+      const rep = (tt) => ({ time: tt, kills: 0, level: 1, bosses: 0 });
+      let last = null;
+      for (let t = 15; t <= 300; t += 15) { s.tick(15); last = await s.call('POST', 'runs/' + body.runId + (t === 300 ? '/finish' : '/beat'), rep(t), a.token); if (last.status !== 200) break; }
+      return last;
+    };
+    const fin = await still('lilita');
+    assert.equal(fin.status, 200, JSON.stringify(fin.body));
+    // в общем топе Лилиты нет, на её вкладке — есть
+    assert.equal((await s.call('GET', 'leaderboard')).body.rows.length, 0);
+    assert.equal((await s.call('GET', 'leaderboard?hero=lilita')).body.rows[0].time, 300);
+    const bad = await still('mage');
+    assert.equal(bad.status, 422);
+    assert.match(bad.body.error, /мало убийств/);
+    // бессмертная «подкрученная» Лилита: дольше 15 минут не засчитывается
+    const { body: run } = await s.call('POST', 'runs', { hero: 'lilita' }, a.token);
+    let last = null;
+    for (let t = 15; t <= 960; t += 15) { s.tick(15); last = await s.call('POST', 'runs/' + run.runId + '/beat', { time: t, kills: 0, level: 1, bosses: 0 }, a.token); if (last.status !== 200) break; }
+    assert.equal(last.status, 422);
+    assert.match(last.body.error, /Лилиты/);
   });
 }

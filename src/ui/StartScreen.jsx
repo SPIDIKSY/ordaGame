@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { HEROES, HDEF, WDEF, fmt, wDesc } from '../game/data.js';
+import { HEROES, HDEF, WDEF, fmt } from '../game/data.js';
 import { getHeroSprites, drawHeroArm, HERO_LOOK } from '../game/sprites/heroes/index.js';
 import { GLOW } from '../game/sprites/world.js';
 import { setGlowScale } from '../game/gfx.js';
@@ -102,13 +102,13 @@ export default function StartScreen({ heroId, best, account }) {
             <div className="hbars">
               <span>Здоровье</span><i style={{ '--k': barK('hp', h.hp) }} /><b>{h.hp}</b>
               <span>Скорость</span><i style={{ '--k': barK('speed', h.speed) }} /><b>{h.speed}</b>
-              <span title="Урон одного удара стартовым оружием — это число вылетает над врагом">Урон</span><i style={{ '--k': barK('hit', h.hit) }} /><b>{h.hit}</b>
+              <span title="Урон одного удара стартовым оружием — это число вылетает над врагом">Урон</span><i style={{ '--k': barK('hit', h.hit) }} /><b>{h.hitText}</b>
             </div>
             <div className="hero-weapon">
-              <span className="slot"><Icon name={Wd.icon} /></span>
-              <div><b>{Wd.name}</b><small>{wDesc(Wd, h.steal)}</small></div>
+              <span className="slot"><Icon name={Wd ? Wd.icon : 'boot'} /></span>
+              <div><b>{Wd ? Wd.name : 'Без оружия'}</b><small>{h.wfacts}</small></div>
             </div>
-            <p className="perk">{h.perk}</p>
+            {!!h.perks.length && <ul className="perk">{h.perks.map((t) => <li key={t}>{t}</li>)}</ul>}
           </div>
         </section>
         <div className="heroes" role="radiogroup" aria-label="Герой">

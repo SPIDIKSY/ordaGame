@@ -21,6 +21,7 @@ export const DMG_COL = {
   normal: '#ffffff',   // обычный удар
   crit: '#ff3348',     // крит — красный, крупный, с «!»
   rage: '#ffa24a',     // под «Яростью» (двойной урон)
-  armor: '#aab6c8'     // по броне: удар срезан
+  armor: '#aab6c8',    // по броне: удар срезан
+  coin: '#ffd56e'      // золотая монетка: золотые цифры
 };
 export function addFx(f) { if (G.fx.length < 160) G.fx.push(f); }

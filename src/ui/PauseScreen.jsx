@@ -12,6 +12,7 @@ export default function PauseScreen({ sections: d }) {
       <div className="panel">
         <h2>Пауза</h2>
         <p className="muted">{d.hero} · ур. {d.level} · {d.time} · убито {d.kills}</p>
+        {d.grow && <p className="lvgrow">{d.grow}</p>}
         {d.gear.filter((grp) => grp.slots.length).map((grp) => (
           <div key={grp.id} className="gear-group">
             <h3>{grp.title}{grp.max ? <small> {grp.slots.length} из {grp.max}</small> : null}</h3>

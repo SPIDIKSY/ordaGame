@@ -12,8 +12,8 @@ import { hitEnemy } from './combat.js';
 import { updateZoneWeapons } from './zones.js';
 
 const cdK = () => G.p.cdMul * (G.buffs.haste > 0 ? 0.6 : 1);
-export const TRAIL = { bolt: 0.5, frost: 0.5, knife: 0.25, axe: 0, fire: 0.9, wisp: 0.7, boom: 0.15, soul: 0.75 };
-export const TRAILC = { bolt: '#ffc46a', frost: '#bdf0ff', knife: '#e8eeff', axe: '#ffffff', fire: '#ff8a3a', wisp: '#c9a0ff', boom: '#ffd27a', soul: '#9a3a6e' };
+export const TRAIL = { bolt: 0.5, frost: 0.5, knife: 0.25, axe: 0, fire: 0.9, wisp: 0.7, boom: 0.15, soul: 0.75, coin: 0.3 };
+export const TRAILC = { bolt: '#ffc46a', frost: '#bdf0ff', knife: '#e8eeff', axe: '#ffffff', fire: '#ff8a3a', wisp: '#c9a0ff', boom: '#ffd27a', soul: '#9a3a6e', coin: '#ffe08a' };
 function segDist(px, py, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
   const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2));
@@ -270,6 +270,19 @@ const FIRE = {
   for (let i = 0; i < n; i++) {
     const t = cand[i % cand.length], a = leadAim(ox, oy, t, sp) + (i - (n - 1) / 2) * 0.45;
     shoot({ kind: 'soul', x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spd: sp, dmg: d, pierce, life: 2, r: 8, tgt: t });
+  }
+  },
+  // Монетки летят в ближайшего врага веером; урон каждой — случайный (бросок при попадании)
+  coin(id, l, g, p, A) {
+  const t = nearest(p.x, p.y, 400 * p.rangeMul);
+  if (!t) { g.wt[id] = 0.05; return; }
+  g.wt[id] = WINFO.coin.cd(l) * cdK();
+  p.face = t.x >= p.x ? 1 : -1;
+  const ox = p.x + 11 * p.face, oy = p.y - 12, n = WINFO.coin.per(l, A), sp = 480 * p.pspeedMul, aim = leadAim(ox, oy, t, sp);
+  const d = p.dmg * WINFO.coin.hit(l) * topK(l), pierce = WINFO.coin.pierce(l);
+  for (let i = 0; i < n; i++) {
+    const a = aim + (i - (n - 1) / 2) * 0.2;
+    shoot({ kind: 'coin', x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: d, pierce, life: 400 * p.rangeMul / sp + 0.2, r: 7, rot: i });
   }
   },
   wisp(id, l, g, p, A) {

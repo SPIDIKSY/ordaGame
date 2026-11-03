@@ -1,7 +1,7 @@
 /* =====================================================
    СУНДУКИ И НАГРАДЫ
    ===================================================== */
-import { RAR, addEff, effText, effHint, ITEMS, MAX_WEAPONS, WMAX, WEAPONS, WDEF, WEIGHTS, wDesc, wLv } from '../data.js';
+import { RAR, addEff, effText, effHint, ITEMS, MAX_WEAPONS, WMAX, WEAPONS, WDEF, WEIGHTS, wLv, weaponFacts, effParts } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
@@ -62,8 +62,10 @@ export function openChest(kind) {
     rarity: RAR[rw.r].name + (rw.type === 'weapon' ? (rw.lvl > 1 ? ' · усиление оружия' : ' · новое оружие') : ' · предмет'),
     name: rw.type === 'weapon' ? rw.wp.name : rw.it.name,
     desc: rw.type === 'weapon'
-      ? (rw.lvl === 1 ? wDesc(rw.wp, G.p.steal) : 'Уровень ' + rw.lvl + ' из ' + WMAX + ': ' + wLv(rw.wp, rw.lvl - 2, G.p.steal) + '.')
-      : (rw.it.desc || effText(rw.eff)) + '. Действует до конца забега.' + (rw.it.desc ? '' : ' ' + effHint(rw.eff)),
+      ? (rw.lvl === 1 ? weaponFacts(rw.wp.id, 1, G.p) : 'Уровень ' + rw.lvl + ' из ' + WMAX + ': ' + wLv(rw.wp, rw.lvl - 2, G.p.steal) + '.')
+      : (rw.it.desc || effParts(rw.eff).join(' · ')),
+    // что значит каждый бонус — во всплывающей подсказке, а не в тексте
+    hint: rw.type === 'weapon' ? rw.wp.desc : rw.it.desc ? '' : effHint(rw.eff),
     rollIcons: ROLL_ICONS
   };
   ui.set({ chest: info });

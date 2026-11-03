@@ -2,7 +2,7 @@
    ОБНОВЛЕНИЕ МИРА (каждый кадр)
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
-import { TYPES, BOSSES, MAXE, DOOM_T, DOOM } from '../data.js';
+import { TYPES, BOSSES, MAXE, DOOM_T, DOOM, coinRoll } from '../data.js';
 import { BIOMES, BIOME_EVERY, HELL } from '../sprites/biomes.js';
 import { stick, keys } from '../input.js';
 import { state, G, GRACE_RAMP } from './state.js';
@@ -40,10 +40,10 @@ export function update(dt) {
   updateWeapons(dt);
   moveShots(dt, g, p);
   moveEnemyShots(dt, g, p);
-  collectLoot(dt, g, p);
+  if (!p.noLevel) collectLoot(dt, g, p);   // Лилита ничего не подбирает
   tickBuffs(dt, g, p);
   tickLegend(dt);
-  const chestHit = touchChests(dt, g, p);
+  const chestHit = p.noLevel ? null : touchChests(dt, g, p);
   cleanupWorld(dt, g);
   levelUpOrChest(g, p, chestHit);
 }
@@ -156,7 +156,7 @@ function moveEnemies(dt, g, p) {
     if (d > far && !e.T.boss && !e.elite) { const s = arenaSpot(p.x, p.y, Math.random() * TAU, spawnDist(), e.r); e.x = s.x; e.y = s.y; }
     if (d < e.r + p.r && e.hitCd <= 0 && !(e.frozen > 0) && p.inv <= 0 && state === 'play') {
       e.hitCd = 0.6;
-      if (Math.random() < Math.min(0.4, p.dodge)) { pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false); p.inv = 0.15; }
+      if (Math.random() < Math.min(p.dodgeCap, p.dodge)) { pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false); p.inv = 0.15; }
       else hurtPlayer(e.dmg, e);
     }
   }
@@ -167,6 +167,7 @@ function moveShots(dt, g, p) {
   for (let i = 0; i < g.shots.length; i++) {
     const s = g.shots[i];
     if (s.kind === 'axe') { s.vy += s.grav * dt; s.rot += s.spin * dt; }
+    else if (s.kind === 'coin') s.rot += 16 * dt;
     else if (s.kind === 'boom') {
       s.rot += 18 * dt;
       if (!s.back) {
@@ -209,10 +210,11 @@ function moveShots(dt, g, p) {
         addFx({ type: 'hit', x: s.x, y: s.y, life: 0.16, T: 0.16, col: s.kind === 'frost' ? '#d8f6ff' : s.kind === 'wisp' ? '#e2c9ff' : s.kind === 'soul' ? '#ffb0d4' : '#ffe2a0' });
         const k = 90 / (1 + e.r / 14), l = Math.hypot(s.vx, s.vy) || 1;
         if (s.kind === 'frost') { e.slow = 1.6; burst(s.x, s.y, '#d8f6ff', 3, 90); }
-        // убийство душой Негжер чаще превращает в кражу жизни — помечаем, чем бьём
-        g.bySoul = s.kind === 'soul';
-        hitEnemy(e, s.dmg, s.vx / l * k, s.vy / l * k);
-        g.bySoul = false;
+        // убийство душой Негжер чаще превращает в кражу жизни — помечаем, чем бьём.
+        // Монетка бьёт на случайный урон от 0 до наибольшего, удача чаще даёт много
+        g.bySoul = s.kind === 'soul'; g.coinHit = s.kind === 'coin';
+        hitEnemy(e, s.kind === 'coin' ? s.dmg * coinRoll(p.luck) : s.dmg, s.vx / l * k, s.vy / l * k);
+        g.bySoul = false; g.coinHit = false;
         if (s.pierce-- <= 0) { s.life = 0; break; }
       }
     }
@@ -227,7 +229,7 @@ function moveEnemyShots(dt, g, p) {
     const s = g.eshots[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
     if (s.life > 0 && p.inv <= 0 && state === 'play' && Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r * 0.6) {
       s.life = 0;
-      if (Math.random() < Math.min(0.4, p.dodge)) pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false);
+      if (Math.random() < Math.min(p.dodgeCap, p.dodge)) pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false);
       else { hurtPlayer(s.dmg, null, 'shot-' + s.kind); if (s.kind === 'web') { p.webT = 1.6; pop(p.x, p.y - 30, 'Паутина', '#e2c9ff', false); } }
     }
   }

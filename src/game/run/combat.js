@@ -4,7 +4,8 @@
    опыт, кристаллы, сундуки и временные бонусы.
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
-import { TYPES, xpNeed, STEAL, soulSteal } from '../data.js';
+import { TYPES, xpNeed, STEAL, soulSteal, HDEF, GROW_MAX } from '../data.js';
+import { applyEff } from './player.js';
 import { SPR } from '../sprites/enemies/index.js';
 import { PUS, PU_W, BUFF_TIME } from '../sprites/world.js';
 import { W, H, hx, hy } from '../input.js';
@@ -17,10 +18,14 @@ import { onHit, onKill, onHurt } from './legend.js';
 /* --- опыт, урон, смерть --- */
 export function addXp(v) {
   const g = G;
+  if (g.p.noLevel) return;   // Лилита в уровне не растёт
   g.xp += v * g.p.xpMul;
   while (g.xp >= g.need) {
     g.xp -= g.need; g.level++; g.need = xpNeed(g.level); g.pending++;
     if (g.level % 5 === 0) g.rerolls++;
+    // способность героя растёт сама с каждым уровнем
+    const gr = HDEF[g.hero] && HDEF[g.hero].grow;
+    if (gr && g.growN < GROW_MAX) { applyEff(g.p, gr.eff); g.growN++; }
   }
 }
 function addGem(x, y, v, type) {
@@ -128,15 +133,19 @@ function lifeSteal(e) {
 // Крит считается здесь, для любого оружия
 export function hitEnemy(e, d, kx, ky, quiet, noCrit) {
   if (e.dead) return;
+  // «чем бьём» (душа, монетка) относится только к этому удару: молнии и взрывы
+  // легендарных предметов, которые он вызовет, — уже не душа и не монетка
+  const bySoul = G.bySoul, coin = G.coinHit;
+  G.bySoul = false; G.coinHit = false;
   let crit = false;
   if (!noCrit && Math.random() < G.p.crit) { crit = true; d *= G.p.critDmg; }
   if (G.buffs.rage > 0) d *= 2;
   if (e.T.armored) d *= 0.6;
   e.hp -= d; e.flash = 0.09; e.sq = 1; e.kx += kx || 0; e.ky += ky || 0;
   if (!quiet || crit) {
-    const col = crit ? DMG_COL.crit : G.buffs.rage > 0 ? DMG_COL.rage : e.T.armored ? DMG_COL.armor : DMG_COL.normal;
+    const col = crit ? DMG_COL.crit : G.buffs.rage > 0 ? DMG_COL.rage : e.T.armored ? DMG_COL.armor : coin ? DMG_COL.coin : DMG_COL.normal;
     pop(e.x, e.y - e.r, Math.round(d) + (crit ? '!' : ''), col, crit, crit ? 'rgba(70,0,10,.95)' : null);
   }
   onHit(e, d, crit);
-  if (e.hp <= 0) killEnemy(e);
+  if (e.hp <= 0) { G.bySoul = bySoul; killEnemy(e); G.bySoul = false; }
 }
