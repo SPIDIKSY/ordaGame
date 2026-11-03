@@ -437,6 +437,7 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 .stat span { color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stat.up b { color: #7dff9a; }
+.stat .smax { font-style: normal; font-size: 0.72em; font-weight: 600; margin-left: 5px; padding: 1px 5px; border-radius: 6px; background: rgba(255, 176, 46, 0.18); color: #ffc65a; vertical-align: 1px; }
 .stat.down b { color: #ff8a96; }
 @media (max-width: 360px) { .statgrid { grid-template-columns: 1fr; } }
 .profile-nick { display: flex; align-items: center; gap: 10px; font-size: 22px; }

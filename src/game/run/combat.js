@@ -5,7 +5,7 @@
    ===================================================== */
 import { TAU, rnd } from '../gfx.js';
 import { TYPES, xpNeed, STEAL, soulSteal, HDEF, GROW_MAX } from '../data.js';
-import { applyEff } from './player.js';
+import { applyEff, recalc } from './player.js';
 import { SPR } from '../sprites/enemies/index.js';
 import { PUS, PU_W, BUFF_TIME } from '../sprites/world.js';
 import { W, H, hx, hy } from '../input.js';
@@ -75,10 +75,10 @@ export function hurtPlayer(d, src, label) {
   p.hp -= Math.max(d * 0.35, d - p.armor); p.inv = 0.3; p.hurt = 0.25;
   onHurt();
   burst(p.x, p.y, '#ff6b6b', 6, 120);
-  if (src && p.thorns > 0) hitEnemy(src, p.thorns * (1 + p.b.dmg), 0, 0, true, true);
+  if (src && p.thorns > 0) hitEnemy(src, p.thorns * p.dmg / 14, 0, 0, true, true);
   if (p.hp <= 0) {
     if (p.revive >= 1) {
-      p.revive -= 1; p.hp = p.maxHp * 0.5; p.inv = 2; g.flash = 0.5; g.shake = 0.4;
+      p.revUsed++; recalc(p); p.hp = p.maxHp * 0.5; p.inv = 2; g.flash = 0.5; g.shake = 0.4;
       for (const e of g.enemies) {
         if (e.dead || e.elite || e.T.boss) continue;
         if (Math.hypot(e.x - p.x, e.y - p.y) < 230) hitEnemy(e, e.hp + 1, 0, 0, true, true);
@@ -124,7 +124,7 @@ function lifeSteal(e) {
     if (Math.random() >= ch) return;
   }
   const add = Math.max(0, Math.min(boss ? STEAL.bossHp : STEAL.hp, STEAL.cap - g.stolen));
-  p.maxHp += add; g.stolen += add; g.steals = (g.steals || 0) + 1;
+  p.hpSteal += add; recalc(p); g.stolen += add; g.steals = (g.steals || 0) + 1;
   p.hp = Math.min(p.maxHp, p.hp + STEAL.heal);
   burst(p.x, p.y - 8, '#ff4a6a', 8, 90);
   // надпись кладём мимо лимита pop(): в гуще боя цифры урона не должны её вытеснить

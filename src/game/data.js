@@ -37,6 +37,32 @@ export const EFX = {
   thorns:  { t: 'int', s: 'урона шипами', n: 'Шипы', h: 'враг, ударивший тебя, сам получает этот урон' },
   revive:  { t: 'int', s: 'воскрешение', n: 'Воскрешение', h: 'когда здоровье кончится, герой встанет с половиной здоровья и 2 секунды будет неуязвим' }
 };
+// Потолки: сколько можно добавить к стартовым числам героя из всех источников вместе —
+// карточки уровня, реликвии, предметы из сундуков и рост способности героя.
+// Характеристика на потолке больше не предлагается ни в карточках, ни в сундуках.
+// revive — сколько воскрешений можно получить за забег всего.
+export const CAPS = {
+  dmg: 1.5, haste: 0.5, area: 0.6, dur: 0.6, amount: 2, pspeed: 0.8, range: 0.5,
+  hp: 300, regen: 3, armor: 10, speed: 0.5, magnet: 2, xp: 1, luck: 1, vamp: 1.5, thorns: 50, revive: 2
+};
+// Шанс крита, сила крита и уклонение ограничены целиком — вместе с тем, что у героя с начала
+export const CAP_TOTAL = { crit: 0.5, critDmg: 3.5, dodge: 0.4 };
+export const BASE_STAT = { crit: 0.05, critDmg: 2, dodge: 0 };
+// Потолки для героя: у кого-то свои (у Кота Лудика удача выше, у Лилиты — уклонение)
+export function heroCaps(h) {
+  const c = { ...CAPS, ...(h.cap || {}) }, e = h.eff || {};
+  const tot = { ...CAP_TOTAL, ...(h.dodgeCap ? { dodge: h.dodgeCap } : {}) };
+  for (const k in tot) c[k] = Math.max(0, tot[k] - BASE_STAT[k] - (e[k] || 0));
+  return c;
+}
+// Потолок одной характеристики так, как его видит игрок: «+60%», «10», «50% всего»
+export function capText(k, caps) {
+  const E = EFX[k];
+  if (CAP_TOTAL[k] !== undefined) return k === 'critDmg' ? '×' + dec(CAP_TOTAL[k]) + ' всего' : Math.round(CAP_TOTAL[k] * 100) + '% всего';
+  const v = (caps || CAPS)[k];
+  if (k === 'revive') return v + ' за забег';
+  return E.t === 'pct' ? '+' + Math.round(v * 100) + '%' : E.t === 'dec' ? dec(v) : String(v);
+}
 // Пояснение к набору бонусов: «Название: что даёт». Для убывающих бонусов (минус) пишем, чем платишь
 export function effHint(eff) {
   return Object.keys(eff).map((k) => EFX[k].n + ': ' + EFX[k].h + (eff[k] < 0 ? ' (здесь это минус)' : '') + '.').join(' ');
@@ -108,7 +134,7 @@ export const ITEMS = [
   { id: 'frost',   r: 4, legend: true, icon: 'flake', name: 'Ледяное сердце',  eff: {}, desc: 'Удары замораживают врага на 1,2 секунды (шанс 12%)' },
   { id: 'cleave',  r: 4, legend: true, icon: 'axe',   name: 'Колун',           eff: {}, desc: 'Криты задевают врагов рядом половиной урона' },
   { id: 'clock',   r: 4, legend: true, icon: 'clock', name: 'Часы вечности',   eff: {}, desc: 'Каждые 25 секунд время замирает на 2,5 секунды' },
-  { id: 'grail',   r: 4, legend: true, icon: 'amulet', name: 'Святой грааль',  eff: {}, desc: 'Когда здоровье падает ниже 30% — лечит половину (раз в минуту)' },
+  { id: 'grail',   r: 4, legend: true, icon: 'amulet', name: 'Святой грааль',  eff: {}, desc: 'Когда здоровье падает ниже 30% — лечит 35% здоровья (раз в 90 секунд)' },
   { id: 'quiver',  r: 4, legend: true, icon: 'multi', name: 'Колчан изобилия', eff: { amount: 1 }, desc: '+1 снаряд ко всему оружию' }
 ];
 
@@ -267,7 +293,7 @@ export const STATS = [
 // hit и atk (урон за удар и в секунду стартовым оружием) считаются сами из таблицы WINFO — см. ниже.
 export const HEROES = [
   { id: 'mage', name: 'Маг', role: 'Чародей: бьёт издалека по площади', weapon: 'staff', hp: 100, speed: 150, eff: { area: 0.1 },
-    grow: { name: 'Магия пространства', eff: { area: 0.01 } } },
+    grow: { name: 'Чародейство', eff: { haste: 0.005 } } },
   { id: 'knight', name: 'Рыцарь', role: 'Защитник: много здоровья и брони', weapon: 'whip', hp: 150, speed: 140, eff: { armor: 2 },
     grow: { name: 'Закалка', eff: { hp: 2 } } },
   { id: 'rogue', name: 'Разбойница', role: 'Ловкачка: самая быстрая, частые криты', weapon: 'knife', hp: 80, speed: 175, eff: { crit: 0.1 },
@@ -281,7 +307,7 @@ export const HEROES = [
   { id: 'vampire', name: 'Негжер', role: 'Вампир: живёт за счёт убийств', weapon: 'soul', hp: 70, speed: 150,
     eff: { armor: 1, vamp: 0.5 }, steal: true, grow: { name: 'Жажда крови', eff: { vamp: 0.05 } } },
   { id: 'ludik', name: 'Кот Лудик', role: 'Игрок: всё решает удача', weapon: 'coin', hp: 100, speed: 160, eff: { luck: 0.2 },
-    grow: { name: 'Фарт', eff: { luck: 0.02 } } },
+    grow: { name: 'Фарт', eff: { luck: 0.02 } }, cap: { luck: 2 } },
   // Мини-герой: без оружия, не растёт в уровне и ничего не подбирает — только бегает и уклоняется
   { id: 'lilita', name: 'Лилита', role: 'Ласка: не атакует, только бегает', weapon: null, hp: 50, speed: 230, eff: { dodge: 0.5 },
     noLevel: true, dodgeCap: 0.6, r: 11 }

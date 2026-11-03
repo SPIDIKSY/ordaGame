@@ -3,10 +3,11 @@
    Снимки снаряжения для HUD, паузы и экрана смерти.
    В React отправляем только то, что поменялось.
    ===================================================== */
-import { RAR, EFX, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, WINFO, fmt, weaponNums, weaponFacts, STEAL } from '../data.js';
+import { RAR, EFX, capText, effText, effHint, scaleEff, ITEMS, MAX_WEAPONS, WMAX, MAX_RELICS, RMAX, RCOL, HEROES, WDEF, RDEF, HDEF, WINFO, fmt, weaponNums, weaponFacts, STEAL } from '../data.js';
 import { PUS } from '../sprites/world.js';
 import { hud } from '../store.js';
 import { G } from './state.js';
+import { isCapped } from './player.js';
 
 /* --- снаряжение: оружие, реликвии и предметы ---
    Один источник для паузы и итогов забега: значок, цвет, уровень и название */
@@ -62,26 +63,28 @@ export function pauseSnapshot() {
   const mainHit = main ? (WINFO[mainId].roll ? main.max : main.hit) : G.wOrder.length ? Math.round(p.dmg) : 0;
   const stats = [
     { id: 'hp', label: 'Здоровье', value: Math.ceil(Math.max(0, p.hp)) + ' / ' + p.maxHp, tone: tone(p.maxHp - H0.hp) },
-    { id: 'dmg', label: 'Урон', value: (main && WINFO[mainId].roll ? '0–' : '') + mainHit, tone: tone(p.b.dmg) },
-    { id: 'haste', label: 'Скорость атаки', value: n100(1 / p.cdMul), tone: tone(p.b.haste) },
+    { id: 'dmg', label: 'Урон', value: (main && WINFO[mainId].roll ? '0–' : '') + mainHit, tone: tone(p.dmg / 14 - 1) },
+    { id: 'haste', label: 'Скорость атаки', value: n100(1 / p.cdMul), tone: tone(1 / p.cdMul - 1) },
     { id: 'area', label: 'Площадь', value: n100(p.area), tone: tone(p.area - 1) },
     { id: 'amount', label: 'Снаряды', value: '+' + p.amount, tone: tone(p.amount) },
-    { id: 'pspeed', label: 'Скорость снарядов', value: n100(p.pspeedMul), tone: tone(p.b.pspeed) },
-    { id: 'range', label: 'Дальность', value: n100(p.rangeMul), tone: tone(p.b.range) },
+    { id: 'pspeed', label: 'Скорость снарядов', value: n100(p.pspeedMul), tone: tone(p.pspeedMul - 1) },
+    { id: 'range', label: 'Дальность', value: n100(p.rangeMul), tone: tone(p.rangeMul - 1) },
     { id: 'dur', label: 'Длительность', value: n100(p.dur), tone: tone(p.dur - 1) },
     { id: 'armor', label: 'Броня', value: String(p.armor), tone: tone(p.armor) },
     { id: 'regen', label: 'Регенерация', value: Math.round(p.regen * 60) + '/мин', tone: tone(p.regen) },
-    { id: 'speed', label: 'Скорость бега', value: String(Math.round(p.speed)), tone: tone(p.b.speed) },
-    { id: 'magnet', label: 'Притяжение', value: String(Math.round(p.magnet)), tone: tone(p.b.magnet) },
+    { id: 'speed', label: 'Скорость бега', value: String(Math.round(p.speed)), tone: tone(p.speed / p.baseSpeed - 1) },
+    { id: 'magnet', label: 'Притяжение', value: String(Math.round(p.magnet)), tone: tone(p.magnet / 84 - 1) },
     { id: 'crit', label: 'Шанс крита', value: pc(p.crit) + '%', tone: tone(p.crit - 0.05) },
     { id: 'critDmg', label: 'Урон крита', value: String(Math.round(mainHit * p.critDmg)), tone: tone(p.critDmg - 2) },
     { id: 'xp', label: 'Опыт', value: n100(p.xpMul), tone: tone(p.xpMul - 1) },
     { id: 'luck', label: 'Удача', value: n100(1 + p.luck), tone: tone(p.luck) },
     { id: 'vamp', label: 'Вампиризм', value: '+' + dec1(p.vamp), tone: tone(p.vamp) },
-    { id: 'dodge', label: 'Уклонение', value: pc(Math.min(p.dodgeCap, p.dodge)) + '%', tone: tone(p.dodge) },
+    { id: 'dodge', label: 'Уклонение', value: pc(p.dodge) + '%', tone: tone(p.dodge) },
     { id: 'thorns', label: 'Шипы', value: String(Math.round(p.thorns)), tone: tone(p.thorns) },
     { id: 'revive', label: 'Воскрешения', value: String(p.revive), tone: tone(p.revive) }
-  ].map((s) => ({ ...s, hint: (UNIT[s.id] ? UNIT[s.id] + ' ' : '') + EFX[s.id].h[0].toUpperCase() + EFX[s.id].h.slice(1) + '.' }));
+  ].map((s) => ({ ...s, max: isCapped(p, s.id),
+    hint: (UNIT[s.id] ? UNIT[s.id] + ' ' : '') + EFX[s.id].h[0].toUpperCase() + EFX[s.id].h.slice(1) + '.'
+      + (p.caps[s.id] !== undefined ? ' Предел: ' + capText(s.id, p.caps) + (isCapped(p, s.id) ? ' — уже набран.' : '.') : '') }));
   // Негжер: сколько максимума здоровья уже накрадено за забег
   if (p.steal) stats.splice(stats.findIndex((s) => s.id === 'vamp') + 1, 0, { id: 'steal', label: 'Кража жизни', value: '+' + G.stolen, tone: tone(G.stolen),
     hint: 'Сколько максимума здоровья украдено за забег. Убийство с шансом лечит на ' + STEAL.heal + ' и навсегда даёт +' + STEAL.hp + ' к максимуму (с босса — всегда и +' + STEAL.bossHp + ').' });

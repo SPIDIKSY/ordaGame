@@ -5,9 +5,9 @@ import { RAR, addEff, effText, effHint, ITEMS, MAX_WEAPONS, WMAX, WEAPONS, WDEF,
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
-import { applyEff } from './player.js';
+import { applyEff, effUseful } from './player.js';
 import { toast } from './fx.js';
-import { openLevelUp } from './levelup.js';
+import { openLevelUp, capHint } from './levelup.js';
 
 function rollRarity(kind) {
   const L = G.p.luck, base = WEIGHTS[kind] || WEIGHTS.normal;
@@ -16,6 +16,11 @@ function rollRarity(kind) {
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; }
   return 0;
 }
+function itemAllowed(it) {
+  if (it.legend) return !(G.legend && G.legend[it.id]) && (!Object.keys(it.eff).length || effUseful(G.p, it.eff));
+  return effUseful(G.p, it.eff);
+}
+export const CHEST_HEAL = 0.5;
 function rollReward(kind) {
   const g = G, r = rollRarity(kind);
   if (r === 4 && Math.random() < 0.4) {
@@ -24,17 +29,20 @@ function rollReward(kind) {
     const pool = fresh.length && (Math.random() < 0.5 || !owned.length) ? fresh : owned;
     if (pool.length) { const id = pool[Math.floor(Math.random() * pool.length)]; return { type: 'weapon', r, wp: WDEF[id], lvl: (g.w[id] || 0) + 1 }; }
   }
-  // предмет ровно этой редкости; легендарку, которая уже есть, второй раз не даём
+  // предмет ровно этой редкости (если таких нет — на ступень ниже). Легендарку, которая уже есть,
+  // второй раз не даём; предмет, у которого все плюсы уже на потолке, тоже
   for (let rr = r; rr >= 0; rr--) {
-    const pool = ITEMS.filter((it) => it.r === rr && !(it.legend && g.legend && g.legend[it.id]));
+    const pool = ITEMS.filter((it) => it.r === rr && itemAllowed(it));
     if (!pool.length) continue;
     const it = pool[Math.floor(Math.random() * pool.length)];
     return { type: 'item', r: rr, it, eff: Object.assign({}, it.eff) };
   }
-  return { type: 'item', r: 0, it: ITEMS[0], eff: Object.assign({}, ITEMS[0].eff) };
+  // всё на потолке — сундук лечит
+  return { type: 'heal', r: 0 };
 }
 function applyReward(rw) {
   const g = G;
+  if (rw.type === 'heal') { g.p.hp = Math.min(g.p.maxHp, g.p.hp + g.p.maxHp * CHEST_HEAL); return; }
   if (rw.type === 'weapon') {
     const id = rw.wp.id;
     if (!g.w[id]) { g.wOrder.push(id); g.wt[id] = 0.4; }
@@ -54,7 +62,9 @@ export function openChest(kind) {
   stickReset(); hideHint();
   curReward = rollReward(kind);
   const rw = curReward;
-  const info = {
+  const heal = rw.type === 'heal';
+  const info = heal ? { id: Math.random(), r: 0, icon: 'heart', lvlTag: '', rarity: 'Всё на пределе', name: 'Лечение',
+    desc: 'Восстанавливает ' + Math.round(CHEST_HEAL * 100) + '% здоровья.', hint: 'Все предметы этой редкости уже упёрлись в предел — сундук лечит.', rollIcons: ROLL_ICONS } : {
     id: Math.random(),
     r: rw.r,
     icon: rw.type === 'weapon' ? rw.wp.icon : rw.it.icon,
@@ -65,7 +75,7 @@ export function openChest(kind) {
       ? (rw.lvl === 1 ? weaponFacts(rw.wp.id, 1, G.p) : 'Уровень ' + rw.lvl + ' из ' + WMAX + ': ' + wLv(rw.wp, rw.lvl - 2, G.p.steal) + '.')
       : (rw.it.desc || effParts(rw.eff).join(' · ')),
     // что значит каждый бонус — во всплывающей подсказке, а не в тексте
-    hint: rw.type === 'weapon' ? rw.wp.desc : rw.it.desc ? '' : effHint(rw.eff),
+    hint: rw.type === 'weapon' ? rw.wp.desc : rw.it.desc ? '' : effHint(rw.eff) + capHint(rw.eff),
     rollIcons: ROLL_ICONS
   };
   ui.set({ chest: info });
@@ -77,7 +87,7 @@ export function takeChest() {
   const rw = curReward; curReward = null;
   ui.set({ chest: null });
   resumePlay();
-  toast(rw.type === 'weapon' ? rw.wp.name + (rw.lvl > 1 ? ': уровень ' + rw.lvl : ' в деле!') : rw.it.name + ': ' + (rw.it.desc || effText(rw.eff)));
+  toast(rw.type === 'heal' ? 'Сундук вылечил тебя' : rw.type === 'weapon' ? rw.wp.name + (rw.lvl > 1 ? ': уровень ' + rw.lvl : ' в деле!') : rw.it.name + ': ' + (rw.it.desc || effText(rw.eff)));
   if (G.pending > 0) openLevelUp();
 }
 // Новый забег или выход в меню: недооткрытый сундук не переносится

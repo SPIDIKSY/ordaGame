@@ -99,7 +99,7 @@ function updateTimeline(dt, g, p, t) {
     }
     if (g.biomeK < 1) g.biomeK = Math.min(1, g.biomeK + dt / 3);
   }
-  g.vampBank = Math.min(p.maxHp * 0.04, g.vampBank + p.maxHp * 0.03 * dt);
+  g.vampBank = Math.min(p.maxHp * 0.04, g.vampBank + p.maxHp * 0.02 * dt);
 }
 
 // Появление врагов: постоянный поток, волны, элита, боссы
@@ -156,7 +156,7 @@ function moveEnemies(dt, g, p) {
     if (d > far && !e.T.boss && !e.elite) { const s = arenaSpot(p.x, p.y, Math.random() * TAU, spawnDist(), e.r); e.x = s.x; e.y = s.y; }
     if (d < e.r + p.r && e.hitCd <= 0 && !(e.frozen > 0) && p.inv <= 0 && state === 'play') {
       e.hitCd = 0.6;
-      if (Math.random() < Math.min(p.dodgeCap, p.dodge)) { pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false); p.inv = 0.15; }
+      if (Math.random() < p.dodge) { pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false); p.inv = 0.15; }
       else hurtPlayer(e.dmg, e);
     }
   }
@@ -229,7 +229,7 @@ function moveEnemyShots(dt, g, p) {
     const s = g.eshots[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
     if (s.life > 0 && p.inv <= 0 && state === 'play' && Math.hypot(s.x - p.x, s.y - p.y) < s.r + p.r * 0.6) {
       s.life = 0;
-      if (Math.random() < Math.min(p.dodgeCap, p.dodge)) pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false);
+      if (Math.random() < p.dodge) pop(p.x, p.y - 30, 'Уклон', '#9fe8ff', false);
       else { hurtPlayer(s.dmg, null, 'shot-' + s.kind); if (s.kind === 'web') { p.webT = 1.6; pop(p.x, p.y - 30, 'Паутина', '#e2c9ff', false); } }
     }
   }

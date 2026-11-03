@@ -204,7 +204,8 @@ if (import.meta.env && import.meta.env.DEV) {
       }
       Object.assign(STEAL, keep);
       const r = { hero: opt.hero, time: Math.round(G.t), kills: G.kills, level: G.level, weapons: G.wOrder.map((id) => id + G.w[id]).join(','),
-        dmgBy: G.dmgBy, hp: Math.round(G.p.hp), maxHp: G.p.maxHp, stolen: G.stolen, stolen5, steals: G.steals, ms: Math.round(performance.now() - t0), dead: state === 'dead' };
+        dmgBy: G.dmgBy, hp: Math.round(G.p.hp), maxHp: G.p.maxHp,
+        st: { dmg: +(G.p.dmg / 14).toFixed(2), haste: +(1 / G.p.cdMul).toFixed(2), area: +G.p.area.toFixed(2), dur: +G.p.dur.toFixed(2), regen: +G.p.regen.toFixed(2), armor: G.p.armor, amount: G.p.amount, crit: +G.p.crit.toFixed(2), revive: G.p.revive, revUsed: G.p.revUsed }, stolen: G.stolen, stolen5, steals: G.steals, ms: Math.round(performance.now() - t0), dead: state === 'dead' };
       stickReset(); goMenu();
       return r;
     }

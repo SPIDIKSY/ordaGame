@@ -10,7 +10,7 @@ import { hitEnemy } from './combat.js';
 import { explode } from './weapons.js';
 
 export const THUNDER_EVERY = 10, FROST_CHANCE = 0.12, FROST_TIME = 1.2, BLAZE_CHANCE = 0.25;
-export const CLOCK_EVERY = 25, CLOCK_TIME = 2.5, GRAIL_CD = 60;
+export const CLOCK_EVERY = 25, CLOCK_TIME = 2.5, GRAIL_CD = 90, GRAIL_HEAL = 0.35;
 
 // Способности не должны запускать друг друга по цепочке (взрыв → убийство → взрыв…)
 let depth = 0;
@@ -68,11 +68,11 @@ export function onHurt() {
   const g = G, p = g.p;
   if (!has('grail') || (g.grailCd || 0) > 0 || p.hp >= p.maxHp * 0.3) return;
   g.grailCd = GRAIL_CD;
-  p.hp = Math.max(0, p.hp) + p.maxHp * 0.5;
+  p.hp = Math.max(0, p.hp) + p.maxHp * GRAIL_HEAL;
   p.inv = Math.max(p.inv, 1);
   g.rings.push({ x: p.x, y: p.y, max: 140, age: 0, life: 0.6, col: '255,220,120' });
   burst(p.x, p.y, '#ffe08a', 26, 220);
-  pop(p.x, p.y - 34, '+' + Math.round(p.maxHp * 0.5), '#7dff9a', true);
+  pop(p.x, p.y - 34, '+' + Math.round(p.maxHp * GRAIL_HEAL), '#7dff9a', true);
   toast('Святой грааль спас тебя!');
 }
 

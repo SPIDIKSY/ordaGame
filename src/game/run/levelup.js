@@ -5,7 +5,7 @@ import { RAR, scaleEff, addEff, effText, effHint, MAX_WEAPONS, WMAX, WEAPONS, MA
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
-import { applyEff } from './player.js';
+import { applyEff, effUseful } from './player.js';
 
 let acceptAt = 0;
 function rollStatRarity() {
@@ -18,9 +18,11 @@ function buildChoices() {
   const g = G, pool = [];
   g.wOrder.forEach((id) => { if (g.w[id] < WMAX) pool.push({ type: 'wup', id, w: 3 }); });
   if (g.wOrder.length < MAX_WEAPONS) WEAPONS.forEach((Wd) => { if (!g.w[Wd.id]) pool.push({ type: 'wnew', id: Wd.id, w: 1.1 }); });
-  g.rOrder.forEach((id) => { if (g.r[id] < RMAX) pool.push({ type: 'rup', id, w: 2 }); });
-  if (g.rOrder.length < MAX_RELICS) RELICS.forEach((R) => { if (!g.r[R.id]) pool.push({ type: 'rnew', id: R.id, w: 0.9 }); });
-  STATS.forEach((S) => { const n = g.st[S.id] ? g.st[S.id].n : 0; if (n < S.max) pool.push({ type: 'stat', id: S.id, w: S.fixed ? 0.3 : 0.8 }); });
+  // реликвии и характеристики, которые уже упёрлись в потолок, не предлагаем
+  const p = g.p;
+  g.rOrder.forEach((id) => { if (g.r[id] < RMAX && effUseful(p, RDEF[id].eff)) pool.push({ type: 'rup', id, w: 2 }); });
+  if (g.rOrder.length < MAX_RELICS) RELICS.forEach((R) => { if (!g.r[R.id] && effUseful(p, R.eff)) pool.push({ type: 'rnew', id: R.id, w: 0.9 }); });
+  STATS.forEach((S) => { const n = g.st[S.id] ? g.st[S.id].n : 0; if (n < S.max && effUseful(p, S.eff)) pool.push({ type: 'stat', id: S.id, w: S.fixed ? 0.3 : 0.8 }); });
   const out = [];
   while (out.length < 3 && pool.length) {
     let r = Math.random() * pool.reduce((a, b) => a + b.w, 0), idx = 0;
@@ -37,6 +39,13 @@ function buildChoices() {
   return out;
 }
 export let curChoices = [];
+// Сколько ещё можно набрать до потолка: «До предела: +18% площади атак»
+export function capHint(eff) {
+  const p = G.p, left = {};
+  for (const k in eff) if (eff[k] > 0 && p.caps[k] !== undefined) left[k] = Math.max(0, p.caps[k] - (p.b[k] || 0));
+  const parts = effParts(left);
+  return parts.length ? ' До предела: ' + parts.join(', ') + '.' : '';
+}
 function cardParts(c) {
   let cc, cat, lv, icon, name, desc, hint = '', cls = '', pips = null; // hint — что значат эти бонусы; pips — [какой уровень берём, сколько всего]
   if (c.type === 'wnew' || c.type === 'wup') {
@@ -46,12 +55,12 @@ function cardParts(c) {
     else { cc = '#ffd56e'; cat = 'Оружие'; lv = 'ур. ' + (n + 1) + ' из ' + WMAX; desc = wLv(Wd, n - 1, G.p.steal); cls = 'wup'; pips = [n + 1, WMAX]; }
   } else if (c.type === 'rnew' || c.type === 'rup') {
     const R = RDEF[c.id], n = G.r[c.id] || 0;
-    cc = RCOL; icon = R.icon; name = R.name; desc = (c.type === 'rnew' ? '' : 'Ещё ') + effParts(R.eff).join(' · '); hint = effHint(R.eff); cls = 'relic';
+    cc = RCOL; icon = R.icon; name = R.name; desc = (c.type === 'rnew' ? '' : 'Ещё ') + effParts(R.eff).join(' · '); hint = effHint(R.eff) + capHint(R.eff); cls = 'relic';
     if (c.type === 'rnew') { cat = 'Новая реликвия'; lv = 'слот ' + (G.rOrder.length + 1) + ' из ' + MAX_RELICS; }
     else { cat = 'Реликвия'; lv = 'ур. ' + (n + 1) + ' из ' + RMAX; pips = [n + 1, RMAX]; }
   } else if (c.type === 'stat') {
     const S = SDEF[c.id], n = G.st[c.id] ? G.st[c.id].n : 0;
-    cc = RAR[c.r].col; icon = S.icon; name = S.name; cat = RAR[c.r].name; lv = 'ур. ' + (n + 1) + ' из ' + S.max; desc = effParts(c.eff).join(' · '); hint = effHint(c.eff); cls = 'r' + c.r; pips = [n + 1, S.max];
+    cc = RAR[c.r].col; icon = S.icon; name = S.name; cat = RAR[c.r].name; lv = 'ур. ' + (n + 1) + ' из ' + S.max; desc = effParts(c.eff).join(' · '); hint = effHint(c.eff) + capHint(c.eff); cls = 'r' + c.r; pips = [n + 1, S.max];
   } else { cc = '#ff7a8a'; icon = 'heart'; name = 'Лечение'; cat = 'Всё прокачано'; lv = ''; desc = 'Восстановить 50 здоровья.'; }
   return { cc, cls, icon, cat, lv, name, desc, hint, pips };
 }
