@@ -4,7 +4,7 @@
 import { RAR, scaleEff, addEff, effText, MAX_WEAPONS, WMAX, WEAPONS, MAX_RELICS, RMAX, RCOL, RELICS, STATS, WDEF, SDEF, RDEF } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
-import { state, G, setState } from './state.js';
+import { state, G, setState, resumePlay } from './state.js';
 import { applyEff } from './player.js';
 
 let acceptAt = 0;
@@ -83,7 +83,7 @@ export function pickChoice(i) {
     k.n++; addEff(k.total, c.eff); k.best = Math.max(k.best, c.r);
   } else p.hp = Math.min(p.maxHp, p.hp + 50);
   g.pending--;
-  if (g.pending > 0) openLevelUp(); else setState('play');
+  if (g.pending > 0) openLevelUp(); else resumePlay();
 }
 export function reroll() {
   if (state !== 'levelup' || G.rerolls <= 0) return;

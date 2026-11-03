@@ -5,7 +5,7 @@
    ===================================================== */
 import { TAU } from '../gfx.js';
 import { GLOW, SEED, SOFT } from '../sprites/world.js';
-import { IMP_R, IMP_FUSE, SLAM_R, SLAM_CAST } from '../run/enemies.js';
+import { IMP_R, IMP_FUSE, SLAM_R, SLAM_CAST, ARCHER_AIM } from '../run/enemies.js';
 import { ELITE_MODS, DASH_LEN, QUAKE_R } from '../run/elites.js';
 import { ctx, G, dpr, heroSpr, cx, cy, inView, auraR, blitGlow, star4, rotT } from './frame.js';
 
@@ -98,6 +98,12 @@ export function drawFloor(now) {
     if (e.fuse > 0) warnCircle(x, y, IMP_R, 1 - e.fuse / IMP_FUSE, '255,90,40', '255,170,90', 6);
     if (e.cast > 0) warnCircle(x, y, SLAM_R, 1 - e.cast / SLAM_CAST, '120,190,255', '170,220,255', 8);
     if (e.mcast > 0) warnMiniboss(e, x, y);
+    // лучник целится: красная линия к герою становится ярче перед выстрелом
+    if (e.aim > 0) {
+      const k = 1 - e.aim / ARCHER_AIM, px = p.x - cx, py = p.y - cy;
+      ctx.strokeStyle = 'rgba(255,70,90,' + (0.15 + 0.55 * k).toFixed(2) + ')'; ctx.lineWidth = 1 + 2 * k; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(px, py - 4); ctx.stroke(); ctx.setLineDash([]);
+    }
   }
   // тени
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath();
