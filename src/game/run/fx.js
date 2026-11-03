@@ -15,5 +15,12 @@ export function burst(x, y, col, n, spd) {
     G.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.35 + Math.random() * 0.3, col, s: 2 + Math.random() * 2.5 });
   }
 }
-export function pop(x, y, s, col, big) { if (G.texts.length < 36) G.texts.push({ x, y, s, col, big, life: 0.6 }); }
+export function pop(x, y, s, col, big, outline) { if (G.texts.length < 36) G.texts.push({ x, y, s, col, big, outline, life: 0.6 }); }
+// Цвета цифр урона: сразу видно, что за удар
+export const DMG_COL = {
+  normal: '#ffffff',   // обычный удар
+  crit: '#ff3348',     // крит — красный, крупный, с «!»
+  rage: '#ffa24a',     // под «Яростью» (двойной урон)
+  armor: '#aab6c8'     // по броне: удар срезан
+};
 export function addFx(f) { if (G.fx.length < 160) G.fx.push(f); }

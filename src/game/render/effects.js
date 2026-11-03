@@ -31,8 +31,8 @@ export function drawEffects(now) {
   for (let i = 0; i < g.texts.length; i++) {
     const q = g.texts[i]; ctx.globalAlpha = Math.min(1, q.life * 3);
     const sp = 1 + 0.7 * Math.max(0, 1 - (0.6 - q.life) / 0.12);
-    ctx.font = (q.big ? '600 ' + Math.round(17 * sp) : '500 ' + Math.round(12 * sp)) + 'px Rubik, system-ui, sans-serif';
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,12,20,.85)'; ctx.strokeText(q.s, q.x - cx, q.y - cy);
+    ctx.font = (q.big ? '700 ' + Math.round(19 * sp) : '500 ' + Math.round(12 * sp)) + 'px Rubik, system-ui, sans-serif';
+    ctx.lineWidth = q.outline ? 4 : 3; ctx.strokeStyle = q.outline || 'rgba(10,12,20,.85)'; ctx.strokeText(q.s, q.x - cx, q.y - cy);
     ctx.fillStyle = q.col; ctx.fillText(q.s, q.x - cx, q.y - cy);
   }
   ctx.globalAlpha = 1;

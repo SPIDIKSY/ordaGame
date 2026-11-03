@@ -9,7 +9,7 @@ import { SPR } from '../sprites/enemies/index.js';
 import { PUS, PU_W, BUFF_TIME } from '../sprites/world.js';
 import { W, H, hx, hy } from '../input.js';
 import { G } from './state.js';
-import { toast, burst, pop } from './fx.js';
+import { toast, burst, pop, DMG_COL } from './fx.js';
 import { spawnAt } from './enemies.js';
 import { die } from './session.js';
 
@@ -112,6 +112,9 @@ export function hitEnemy(e, d, kx, ky, quiet, noCrit) {
   if (G.buffs.rage > 0) d *= 2;
   if (e.T.armored) d *= 0.6;
   e.hp -= d; e.flash = 0.09; e.sq = 1; e.kx += kx || 0; e.ky += ky || 0;
-  if (!quiet || crit) pop(e.x, e.y - e.r, String(Math.round(d)), crit ? '#ffd45e' : (G.buffs.rage > 0 ? '#ffb07a' : '#ffffff'), crit);
+  if (!quiet || crit) {
+    const col = crit ? DMG_COL.crit : G.buffs.rage > 0 ? DMG_COL.rage : e.T.armored ? DMG_COL.armor : DMG_COL.normal;
+    pop(e.x, e.y - e.r, Math.round(d) + (crit ? '!' : ''), col, crit, crit ? 'rgba(70,0,10,.95)' : null);
+  }
   if (e.hp <= 0) killEnemy(e);
 }
