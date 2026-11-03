@@ -4,7 +4,7 @@
    обновить мир (run/update.js) → нарисовать (render/) → обновить HUD.
    Логика забега разложена по папке run/, управление — input.js.
    ===================================================== */
-import { fmt } from './data.js';
+import { fmt, STEAL } from './data.js';
 import { render } from './render/index.js';
 import { perfFrame, perfStats } from './perf.js';
 import { settings, onSettings } from './settings.js';
@@ -182,8 +182,11 @@ if (import.meta.env && import.meta.env.DEV) {
     heroAttack: () => G && heroAttack(),
     // Прогон забега без отрисовки. Пример: __orda.sim({ hero: 'knight', max: 900 }).
     // weapon и lvl — начать с одним оружием нужного уровня: __orda.sim({ weapon: 'whip', lvl: 10, solo: true })
+    // steal — подменить настройки кражи жизни Негжера на время прогона: __orda.sim({ hero: 'vampire', steal: { chance: 0.01 } })
     sim(o) {
       const opt = Object.assign({ hero: 'mage', max: 900, dt: 1 / 30, weapon: null, lvl: 1 }, o);
+      const keep = { ...STEAL }; if (opt.steal) Object.assign(STEAL, opt.steal);
+      let stolen5 = null;
       selectHero(opt.hero);
       startGame();
       if (opt.weapon) { G.w = { [opt.weapon]: opt.lvl }; G.wOrder = [opt.weapon]; G.wt = { [opt.weapon]: 0.2 }; G.heroWeapon = opt.weapon; }
@@ -195,9 +198,11 @@ if (import.meta.env && import.meta.env.DEV) {
         if (state === 'chest') { takeChest(); continue; }
         botInput();
         update(opt.dt); steps++;
+        if (stolen5 === null && G.t >= 300) stolen5 = G.stolen;
       }
+      Object.assign(STEAL, keep);
       const r = { hero: opt.hero, time: Math.round(G.t), kills: G.kills, level: G.level, weapons: G.wOrder.map((id) => id + G.w[id]).join(','),
-        dmgBy: G.dmgBy, hp: Math.round(G.p.hp), ms: Math.round(performance.now() - t0), dead: state === 'dead' };
+        dmgBy: G.dmgBy, hp: Math.round(G.p.hp), maxHp: G.p.maxHp, stolen: G.stolen, stolen5, steals: G.steals, ms: Math.round(performance.now() - t0), dead: state === 'dead' };
       stickReset(); goMenu();
       return r;
     }

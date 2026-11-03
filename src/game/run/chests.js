@@ -1,7 +1,7 @@
 /* =====================================================
    СУНДУКИ И НАГРАДЫ
    ===================================================== */
-import { RAR, addEff, effText, effHint, ITEMS, MAX_WEAPONS, WMAX, WEAPONS, WDEF, WEIGHTS } from '../data.js';
+import { RAR, addEff, effText, effHint, ITEMS, MAX_WEAPONS, WMAX, WEAPONS, WDEF, WEIGHTS, wDesc, wLv } from '../data.js';
 import { ui } from '../store.js';
 import { stickReset, hideHint } from '../input.js';
 import { state, G, setState, resumePlay } from './state.js';
@@ -62,7 +62,7 @@ export function openChest(kind) {
     rarity: RAR[rw.r].name + (rw.type === 'weapon' ? (rw.lvl > 1 ? ' · усиление оружия' : ' · новое оружие') : ' · предмет'),
     name: rw.type === 'weapon' ? rw.wp.name : rw.it.name,
     desc: rw.type === 'weapon'
-      ? (rw.lvl === 1 ? rw.wp.desc : 'Уровень ' + rw.lvl + ' из ' + WMAX + ': ' + rw.wp.lv[rw.lvl - 2] + '.')
+      ? (rw.lvl === 1 ? wDesc(rw.wp, G.p.steal) : 'Уровень ' + rw.lvl + ' из ' + WMAX + ': ' + wLv(rw.wp, rw.lvl - 2, G.p.steal) + '.')
       : (rw.it.desc || effText(rw.eff)) + '. Действует до конца забега.' + (rw.it.desc ? '' : ' ' + effHint(rw.eff)),
     rollIcons: ROLL_ICONS
   };

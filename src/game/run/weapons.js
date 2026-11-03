@@ -12,8 +12,8 @@ import { hitEnemy } from './combat.js';
 import { updateZoneWeapons } from './zones.js';
 
 const cdK = () => G.p.cdMul * (G.buffs.haste > 0 ? 0.6 : 1);
-export const TRAIL = { bolt: 0.5, frost: 0.5, knife: 0.25, axe: 0, fire: 0.9, wisp: 0.7, boom: 0.15 };
-export const TRAILC = { bolt: '#ffc46a', frost: '#bdf0ff', knife: '#e8eeff', axe: '#ffffff', fire: '#ff8a3a', wisp: '#c9a0ff', boom: '#ffd27a' };
+export const TRAIL = { bolt: 0.5, frost: 0.5, knife: 0.25, axe: 0, fire: 0.9, wisp: 0.7, boom: 0.15, soul: 0.75 };
+export const TRAILC = { bolt: '#ffc46a', frost: '#bdf0ff', knife: '#e8eeff', axe: '#ffffff', fire: '#ff8a3a', wisp: '#c9a0ff', boom: '#ffd27a', soul: '#9a3a6e' };
 function segDist(px, py, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
   const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2));
@@ -255,6 +255,21 @@ const FIRE = {
       if (Math.hypot(e.x - sx, e.y - sy) < R + e.r) { hitEnemy(e, d, 0, 0); e.slow = Math.max(e.slow, 0.6); }
     }
     for (let k = 0; k < 3; k++) addFx({ type: 'dust', x: sx + rnd(-R / 2, R / 2), y: sy + rnd(-4, 6), vx: rnd(-25, 25), vy: rnd(-30, -10), life: 0.5, T: 0.5, r: rnd(4, 7), col: '120,105,90' });
+  }
+  },
+  // Души вылетают из руки и сами догоняют ближайших врагов (каждая — своего)
+  soul(id, l, g, p, A) {
+  const cand = enemiesWithin(420 * p.rangeMul);
+  if (!cand.length) { g.wt[id] = 0.05; return; }
+  g.wt[id] = WINFO.soul.cd(l) * cdK();
+  cand.sort((a, b) => (a.x - p.x) ** 2 + (a.y - p.y) ** 2 - ((b.x - p.x) ** 2 + (b.y - p.y) ** 2));
+  const n = WINFO.soul.per(l, A), sp = 380 * p.pspeedMul, d = p.dmg * WINFO.soul.hit(l) * topK(l), pierce = WINFO.soul.pierce(l);
+  p.face = cand[0].x >= p.x ? 1 : -1;
+  const ox = p.x + 11 * p.face, oy = p.y - 12;
+  burst(ox, oy, '#ff7ab8', 3, 90);
+  for (let i = 0; i < n; i++) {
+    const t = cand[i % cand.length], a = leadAim(ox, oy, t, sp) + (i - (n - 1) / 2) * 0.45;
+    shoot({ kind: 'soul', x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spd: sp, dmg: d, pierce, life: 2, r: 8, tgt: t });
   }
   },
   wisp(id, l, g, p, A) {

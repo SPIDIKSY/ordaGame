@@ -7,8 +7,8 @@
    ===================================================== */
 import { TAU, mk, tint, outline, setGlowScale, line } from '../../gfx.js';
 import { BODY_W, BODY_H, OUTLINE, SKIN1, SKIN_LINE, FUR0, FUR_LINE } from './parts.js';
-import { bodyMage, bodyKnight, bodyRogue, bodyDruid, bodyNecro, bodyCat } from './bodies.js';
-import { drawStaffMage, drawSword, drawDagger, drawStaffDruid, drawStaffNecro, drawMug } from './weapons.js';
+import { bodyMage, bodyKnight, bodyRogue, bodyDruid, bodyNecro, bodyCat, bodyVampire } from './bodies.js';
+import { drawStaffMage, drawSword, drawDagger, drawStaffDruid, drawStaffNecro, drawMug, drawSoulOrb } from './weapons.js';
 import { poseCaster, poseKnight, poseRogue, poseCat, mix } from './poses.js';
 
 /* ---------- описание каждого героя ---------- */
@@ -24,7 +24,9 @@ export const HERO_LOOK = {
   necro:  { body: bodyNecro,  ring: '190,140,255', glow: 'purple', sleeve: '#33244f', sleeveLine: '#05030a', cuff: '#b77cff', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#d8d0e8', handLine: '#4a3a66', atk: 0.42,
             pose: (P) => poseCaster(P, -0.05), weapon: drawStaffNecro },
   cat:    { body: bodyCat,    ring: '255,200,90',  glow: null,     sleeve: '#3a56b0', sleeveLine: '#0a1030', cuff: '#eef2fb', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: FUR0, handLine: FUR_LINE, atk: 0.7,
-            pose: poseCat, weapon: drawMug }
+            pose: poseCat, weapon: drawMug },
+  vampire: { body: bodyVampire, ring: '170,20,50', glow: 'soul', sleeve: '#4a1220', sleeveLine: '#0a0204', cuff: '#f2ecef', sh: [4.8, -5.2], arm: 10.23, phi0: 0.645, hand: '#f0ecf2', handLine: '#5a4a62', atk: 0.32,
+            pose: (P) => poseCaster(P, 0), weapon: drawSoulOrb }
 };
 
 /**

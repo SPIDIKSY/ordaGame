@@ -9,7 +9,7 @@ import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypt
 import { parseReport, checkReport, beatTooSoon, scoreOf, SCORE } from './anticheat.js';
 import { badNick } from './nickfilter.js';
 
-export const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat'];
+export const HEROES = ['mage', 'knight', 'rogue', 'druid', 'necro', 'cat', 'vampire'];
 const SESSION_DAYS = 30;
 const GUEST_CLAIM_MS = 30 * 60000; // сколько гость может «забрать» забег после смерти
 const LOGIN_RE = /^[a-zA-Z0-9_]{3,20}$/;
