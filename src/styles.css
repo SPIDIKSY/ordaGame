@@ -351,7 +351,18 @@ h2 { font-size: clamp(26px, 7vw, 36px); color: var(--amber); }
 
 /* выбор столбца, по которому упорядочена таблица лидеров */
 .tabs.sorts { margin-top: 6px; }
+.tabs.modes { margin-bottom: 6px; }
+.tabs.modes button { flex: 1 1 0; }
+/* топ героев: имя с полоской доли забегов, под числами — мелкие подписи */
+.board col.c-rec { width: 76px; }
+.board td small { display: block; font-size: 10px; color: var(--ink-dim); font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
+.board.herotop td.who span.hname { display: block; flex: 1 1 auto; }
+.herotop .share { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: rgba(255,255,255,.08); }
+.herotop .share i { display: block; height: 100%; border-radius: 2px; background: var(--amber); }
+.herotop .note { margin: 10px 4px 2px; font-size: 12px; white-space: normal; }
 .tabs.sorts button { flex: 1 1 0; font-size: 13px; }
+/* на узком телефоне три кнопки сортировки и «?» должны влезать в строку */
+@media (max-width: 420px) { .tabs.sorts button:not(.help-btn) { min-width: 0; padding: 0 6px; font-size: 12px; } }
 /* Кружок «?». Селектор не короче, чем у .tabs.sorts button, иначе кнопка
    растягивается наравне с остальными и круг превращается в овал. */
 .tabs.sorts .help-btn {

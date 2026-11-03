@@ -153,6 +153,22 @@ export function createHandler({ kv, now = () => Date.now() }) {
     return board;
   }
 
+  /* ---------- топ героев: сколько за кого играют ----------
+     Один документ herostats: { герой: { runs — сколько начато забегов, time — сколько секунд
+     сыграно в засчитанных забегах } }. Считается не главное: если документ занят — пробуем
+     ещё раз, а не получилось — забег всё равно идёт, просто без отметки в статистике. */
+  async function bumpHero(hero, add) {
+    try {
+      for (let i = 0; i < 6; i++) {
+        const cur = await kv.get('herostats');
+        const st = cur ? cur.value : {};
+        const h = st[hero] || { runs: 0, time: 0 };
+        st[hero] = { runs: h.runs + (add.runs || 0), time: Math.round(h.time + (add.time || 0)) };
+        if (cur ? await kv.put('herostats', st, { ifMatch: cur.etag }) : await kv.put('herostats', st, { ifNew: true })) return;
+      }
+    } catch (e) { console.error('herostats', e); }
+  }
+
   /* ---------- маршруты ---------- */
   const routes = {
     'GET health': async () => json(200, { ok: true }),
@@ -234,6 +250,7 @@ export function createHandler({ kv, now = () => Date.now() }) {
       // новый забег отменяет предыдущий незаконченный
       await kv.put('active/' + key, { runId: id });
       await kv.put('run/' + id, run);
+      await bumpHero(hero, { runs: 1 });
       return json(200, runToken ? { runId: id, runToken } : { runId: id });
     },
 
@@ -268,6 +285,7 @@ export function createHandler({ kv, now = () => Date.now() }) {
       const done = { ...run, status: o.user ? 'ok' : 'guest-ok', finished_at: t, time: r.time, kills: r.kills, level: r.level, bosses: r.bosses };
       done.score = scoreOf(done);
       if (!(await kv.put('run/' + runId, done, { ifMatch: cur.etag }))) return json(404, { error: 'Забег уже засчитан' });
+      await bumpHero(run.hero, { time: r.time });
       if (!o.user) return json(200, { ok: true, guest: true, score: done.score, claimUntil: t + GUEST_CLAIM_MS });
       return json(200, { ok: true, score: done.score, ...(await placeAfter(o.user, done)) });
     },
@@ -294,6 +312,27 @@ export function createHandler({ kv, now = () => Date.now() }) {
       // scoring — чтобы игра могла показать «как считаются очки» и не хранила
       // эти числа у себя второй раз
       return json(200, { rows: rows.slice(0, limit), total: rows.length, scoring: SCORE });
+    },
+
+    // Топ героев: забеги и сыгранное время (считаются с момента появления топа),
+    // сколько игроков с аккаунтом есть в таблице рекордов за этого героя и чей рекорд лучший
+    'GET heroes': async () => {
+      const [cur, board] = await Promise.all([kv.get('herostats'), readBoard()]);
+      const st = cur ? cur.value : {};
+      const rows = HEROES.map((hero) => {
+        let players = 0, best = null;
+        for (const id in board.users) {
+          const r = board.users[id].heroes[hero];
+          if (!r) continue;
+          players++;
+          if (better(r, best)) best = { ...r, nick: board.users[id].nick };
+        }
+        const s = st[hero] || { runs: 0, time: 0 };
+        return { hero, runs: s.runs, time: s.time, players, best: best && { nick: best.nick, time: best.time, kills: best.kills } };
+      });
+      rows.sort((a, b) => b.runs - a.runs || b.players - a.players || b.time - a.time);
+      const totalRuns = rows.reduce((n, r) => n + r.runs, 0);
+      return json(200, { rows: rows.map((r, i) => ({ place: i + 1, ...r, share: totalRuns ? r.runs / totalRuns : 0 })), totalRuns });
     }
   };
 
