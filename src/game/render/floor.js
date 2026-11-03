@@ -59,9 +59,9 @@ export function drawFloor(now) {
   if (g.w.aura) {
     const R = auraR(), x = p.x - cx, y = p.y - cy;
     ctx.globalCompositeOperation = 'lighter';
-    blitGlow(GLOW.gold, x, y, R * 2.3, 0.28 + 0.06 * Math.sin(now / 200));
+    blitGlow(GLOW.white, x, y, R * 2.3, 0.28 + 0.06 * Math.sin(now / 200));
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-    ctx.strokeStyle = 'rgba(255,224,150,.55)'; ctx.lineWidth = 2; ctx.setLineDash([10, 14]); ctx.lineDashOffset = -now * 0.03;
+    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 2; ctx.setLineDash([10, 14]); ctx.lineDashOffset = -now * 0.03;
     ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     // семечки кружат по краю и внутри поля
     for (let k = 0; k < 10; k++) {
@@ -80,7 +80,7 @@ export function drawFloor(now) {
     for (let i = 0; i < g.fx.length; i++) {
       const q = g.fx[i]; if (q.type !== 'pulse') continue;
       const k = 1 - q.life / q.T;
-      ctx.strokeStyle = 'rgba(255,220,140,' + (0.55 * (1 - k)).toFixed(2) + ')'; ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.55 * (1 - k)).toFixed(2) + ')'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(x, y, R * (0.2 + 0.8 * k), 0, TAU); ctx.stroke();
     }
   }
